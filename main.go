@@ -16,11 +16,11 @@ func main() {
 	sqlStmt := `
     CREATE TABLE IF NOT EXISTS domains (
 	    id TEXT PRIMARY KEY,
-        name TEXT
+        name TEXT UNIQUE
     );
     CREATE TABLE IF NOT EXISTS subdomains (
 	    id TEXT PRIMARY KEY,
-        name TEXT,
+        name TEXT UNIQUE,
 		parent_id TEXT NOT NULL
     );`
 

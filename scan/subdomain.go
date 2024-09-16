@@ -164,9 +164,30 @@ func (ds *DomainEnumerationService) executeSubfinderPassiveScan(domain string) (
 }
 
 func (ds *DomainEnumerationService) registerSubDomain(ctx context.Context, domain string, subDomains []string) error {
-	var domainID string
-	err := ds.db.QueryRowContext(ctx, "SELECT id FROM domains WHERE name = ?", domain).Scan(&domainID)
+	query := `
+	SELECT d.id, s.name 
+	FROM domains d
+	LEFT JOIN subdomains s ON d.id = s.parent_id
+	WHERE d.name = ?`
+	rows, err := ds.db.QueryContext(ctx, query, domain)
 	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var domainID string
+	existingSubDomains := make(map[string]bool)
+
+	for rows.Next() {
+		var subDomainName sql.NullString
+		if err := rows.Scan(&domainID, &subDomainName); err != nil {
+			return err
+		}
+		if subDomainName.Valid {
+			existingSubDomains[subDomainName.String] = true
+		}
+	}
+	if err := rows.Err(); err != nil {
 		return err
 	}
 
@@ -174,8 +195,11 @@ func (ds *DomainEnumerationService) registerSubDomain(ctx context.Context, domai
 	if err != nil {
 		return err
 	}
-	query := `INSERT INTO subdomains (id, name, parent_id) VALUES (?, ?, ?)`
+	query = `INSERT INTO subdomains (id, name, parent_id) VALUES (?, ?, ?)`
 	for _, subDomain := range subDomains {
+		if existingSubDomains[subDomain] {
+			continue
+		}
 		_, err := tx.ExecContext(ctx, query, uuid.New().String(), subDomain, domainID)
 		if err != nil {
 			tx.Rollback()
