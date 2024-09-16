@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"sync"
 
@@ -32,7 +33,7 @@ func NewDomainEnumerationService(db *sql.DB, option *Option) *DomainEnumerationS
 	}
 }
 
-func (ds *DomainEnumerationService) StartScan(domain string) error {
+func (ds *DomainEnumerationService) StartScan(domain, mode string) error {
 	ctx := context.Background()
 	var domainID string
 	err := ds.db.QueryRowContext(ctx, "SELECT id FROM domains WHERE name = ?", domain).Scan(&domainID)
@@ -45,13 +46,17 @@ func (ds *DomainEnumerationService) StartScan(domain string) error {
 			return err
 		}
 	}
-	if err := ds.executePassiveScan(ctx, domain); err != nil {
-		return err
+	switch mode {
+	case "passive":
+		ds.executePassiveScan(ctx, domain)
+	case "active":
+		ds.executeActiveScan(ctx, domain)
 	}
+
 	return nil
 }
 
-func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, domain string) error {
+func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, domain string) {
 	var wg sync.WaitGroup
 	f := func(method string, scanfunc func(string) ([]string, error)) {
 		log.Printf("[+] %s Passive Scan started", method)
@@ -71,8 +76,8 @@ func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, doma
 	}
 
 	scanFunctions := map[string](func(string) ([]string, error)){
-		"Amass":     ds.executeAmassPassiveScan,
-		"Subfinder": ds.executeSubfinderPassiveScan,
+		"Amass":     ds.executeAmassScan,
+		"Subfinder": ds.executeSubfinderScan,
 	}
 
 	for key, scanFunc := range scanFunctions {
@@ -81,12 +86,28 @@ func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, doma
 	}
 
 	wg.Wait()
-	return nil
 }
 
-func (ds *DomainEnumerationService) executeAmassPassiveScan(domain string) ([]string, error) {
-	outputFile := fmt.Sprintf("/tmp/amass-passive-%s.txt", domain)
-	cmd := exec.Command("amass", "enum", "-passive", "-d", domain, "-o", outputFile)
+func (ds *DomainEnumerationService) executeActiveScan(ctx context.Context, domain string) {
+	// マルチスレッドっぽくやるとDNSリゾルバが悲鳴あげるので使わないことにした
+	result, err := ds.executeDNSBruteForce(ctx, domain)
+	if err != nil {
+		log.Println("[-] Error at executeDNSBruteForce: ", err)
+		return
+	}
+	if result != nil {
+		if err := ds.registerSubDomain(ctx, domain, result); err != nil {
+			log.Println("[-] Error at registerSubDomain: ", err)
+			return
+		}
+	}
+	log.Println("[+] Active Scan completed")
+}
+
+func (ds *DomainEnumerationService) executeDNSBruteForce(ctx context.Context, domain string) ([]string, error) {
+	outputFile := fmt.Sprintf("/tmp/dnsbrute-%s.txt", domain)
+	wordlistPath := filepath.Join("./wordlists/dns", "subdomains-top1million-5000.txt")
+	cmd := exec.CommandContext(ctx, "dnsx", "-d", domain, "-w", wordlistPath, "-o", outputFile)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -124,7 +145,47 @@ func (ds *DomainEnumerationService) executeAmassPassiveScan(domain string) ([]st
 	return extractSubdomains(outputFile, domain)
 }
 
-func (ds *DomainEnumerationService) executeSubfinderPassiveScan(domain string) ([]string, error) {
+func (ds *DomainEnumerationService) executeAmassScan(domain string) ([]string, error) {
+	outputFile := fmt.Sprintf("/tmp/amass-passive-%s.txt", domain)
+	cmd := exec.Command("amass", "enum", "-active", "-d", domain, "-o", outputFile)
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stdout pipe: %v", err)
+	}
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stderr pipe: %v", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start amass: %v", err)
+	}
+
+	if ds.option.Verbose {
+		go func() {
+			scanner := bufio.NewScanner(stdout)
+			for scanner.Scan() {
+				fmt.Printf("%s\n", scanner.Text())
+			}
+		}()
+		go func() {
+			scanner := bufio.NewScanner(stderr)
+			for scanner.Scan() {
+				fmt.Printf("%s\n", scanner.Text())
+			}
+		}()
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return nil, fmt.Errorf("amass command failed: %v", err)
+	}
+
+	return extractSubdomains(outputFile, domain)
+}
+
+func (ds *DomainEnumerationService) executeSubfinderScan(domain string) ([]string, error) {
 	outputFile := fmt.Sprintf("/tmp/subfinder-passive-%s.txt", domain)
 	cmd := exec.Command("subfinder", "-silent", "-all", "-d", domain, "-o", outputFile)
 	stdout, err := cmd.StdoutPipe()
