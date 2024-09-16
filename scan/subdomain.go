@@ -33,6 +33,30 @@ func NewDomainEnumerationService(db *sql.DB, option *Option) *DomainEnumerationS
 	}
 }
 
+func (ds *DomainEnumerationService) GetSubDomains(domain string) error {
+	ctx := context.Background()
+	query := `
+    SELECT s.name FROM subdomains s
+ 	   JOIN domains d ON s.parent_id = d.id
+    	WHERE d.name = ?`
+	rows, err := ds.db.QueryContext(ctx, query, domain)
+	if err != nil {
+		return fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var subdomain string
+		if err := rows.Scan(&subdomain); err != nil {
+			return fmt.Errorf("failed to scan row: %w", err)
+		}
+		fmt.Println(subdomain)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("error occurred during row iteration: %w", err)
+	}
+	return nil
+}
+
 func (ds *DomainEnumerationService) StartScan(domain, mode string) error {
 	ctx := context.Background()
 	var domainID string
