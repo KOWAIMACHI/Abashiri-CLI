@@ -53,10 +53,10 @@ func (ds *DomainEnumerationService) StartScan(domain string) error {
 
 func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, domain string) error {
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
+	f := func(method string, scanfunc func(string) ([]string, error)) {
+		log.Printf("[+] %s Passive Scan started", method)
 		defer wg.Done()
-		result, err := ds.executeAmassPassiveScan(domain)
+		result, err := scanfunc(domain)
 		if err != nil {
 			log.Println("[-] Error at executeAmassPassiveScan: ", err)
 			return
@@ -67,8 +67,18 @@ func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, doma
 				return
 			}
 		}
-		log.Println("[+] Amass Passive Scan completed")
-	}()
+		log.Printf("[+] %s Passive Scan completed", method)
+	}
+
+	scanFunctions := map[string](func(string) ([]string, error)){
+		"Amass":     ds.executeAmassPassiveScan,
+		"Subfinder": ds.executeSubfinderPassiveScan,
+	}
+
+	for key, scanFunc := range scanFunctions {
+		wg.Add(1)
+		go f(key, scanFunc)
+	}
 
 	wg.Wait()
 	return nil
@@ -78,6 +88,45 @@ func (ds *DomainEnumerationService) executeAmassPassiveScan(domain string) ([]st
 	outputFile := fmt.Sprintf("/tmp/amass-passive-%s.txt", domain)
 	cmd := exec.Command("amass", "enum", "-passive", "-d", domain, "-o", outputFile)
 
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stdout pipe: %v", err)
+	}
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stderr pipe: %v", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start amass: %v", err)
+	}
+
+	if ds.option.Verbose {
+		go func() {
+			scanner := bufio.NewScanner(stdout)
+			for scanner.Scan() {
+				fmt.Printf("%s\n", scanner.Text())
+			}
+		}()
+		go func() {
+			scanner := bufio.NewScanner(stderr)
+			for scanner.Scan() {
+				fmt.Printf("%s\n", scanner.Text())
+			}
+		}()
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return nil, fmt.Errorf("amass command failed: %v", err)
+	}
+
+	return extractSubdomains(outputFile, domain)
+}
+
+func (ds *DomainEnumerationService) executeSubfinderPassiveScan(domain string) ([]string, error) {
+	outputFile := fmt.Sprintf("/tmp/subfinder-passive-%s.txt", domain)
+	cmd := exec.Command("subfinder", "-silent", "-all", "-d", domain, "-o", outputFile)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stdout pipe: %v", err)
