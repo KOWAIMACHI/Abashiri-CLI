@@ -16,13 +16,13 @@ var rootArgs = &RootArgs{}
 var rootCmd = &cobra.Command{
 	Use:   "abashiri-cli",
 	Short: "",
-	Long:  ``,
+	Long: `. . 
+し  < ABASHIRI-CLI!!!
+ ▽`,
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		panic(err)
-	}
+	rootCmd.Execute()
 }
 
 func init() {

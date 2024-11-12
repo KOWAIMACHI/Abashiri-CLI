@@ -19,13 +19,10 @@ var subDomainArgs = &SubDomainArgs{}
 
 var subdomainCmd = &cobra.Command{
 	Use:   "subdomain",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Collect subdomains for a specified domain",
+	Long: `This command is used to collect subdomains for a given domain by performing passive or active scanning.
+It leverages various discovery techniques to find subdomains and stores the results in an SQLite database for later retrieval.
+This tool is useful for gathering a comprehensive list of subdomains associated with a domain for security testing and analysis.`,
 }
 
 func init() {

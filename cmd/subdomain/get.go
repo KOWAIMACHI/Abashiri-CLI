@@ -12,8 +12,9 @@ import (
 
 var GetCmd = &cobra.Command{
 	Use:   "get",
-	Short: "",
-	Long:  ``,
+	Short: "List all enumerated subdomains for a given domain",
+	Long: `This command retrieves and lists all the subdomains associated with a specified domain stored in an SQLite database.
+It is part of a tool for managing collected domains and URLs, providing an easy way to view all subdomains that have been previously stored.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		domain, _ := cmd.Flags().GetString("domain")
 		db, err := sql.Open("sqlite3", "./abashiri.db")

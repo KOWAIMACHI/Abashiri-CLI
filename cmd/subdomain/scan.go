@@ -15,8 +15,16 @@ import (
 
 var ScanCmd = &cobra.Command{
 	Use:   "scan",
-	Short: "",
-	Long:  ` `,
+	Short: "Scan a domain for subdomains using passive or active methods",
+	Long: `This command scans a given domain to discover subdomains using either passive or active techniques.
+Passive scanning involves gathering subdomains from publicly available sources.
+ - Subfinder
+ - Amass
+
+Active scanning performs actual requests to identify live subdomains.
+ - DNSBruteforce
+
+The results are then stored in a database for later reference.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		domain, _ := cmd.Flags().GetString("domain")
 		verbose, err := cmd.Flags().GetBool("verbose")
@@ -26,7 +34,6 @@ var ScanCmd = &cobra.Command{
 		mode, _ := cmd.Flags().GetString("mode")
 
 		if domain == "" {
-			fmt.Println("domain flag is required")
 			cmd.Usage()
 			os.Exit(1)
 		}
