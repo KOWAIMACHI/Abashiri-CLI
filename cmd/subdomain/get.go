@@ -1,7 +1,7 @@
 package subdomain
 
 import (
-	"abashiri-cli/scan"
+	"abashiri-cli/core/discovery"
 	"database/sql"
 	"log"
 
@@ -25,8 +25,8 @@ to quickly create a Cobra application.`,
 			log.Fatal(err)
 		}
 		defer db.Close()
-		ds := scan.NewDomainEnumerationService(db,
-			&scan.Option{},
+		ds := discovery.NewDomainEnumerationService(db,
+			&discovery.Option{},
 		)
 		ds.GetSubDomains(domain)
 	},

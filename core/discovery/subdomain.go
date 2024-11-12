@@ -1,4 +1,4 @@
-package scan
+package discovery
 
 import (
 	"bufio"
