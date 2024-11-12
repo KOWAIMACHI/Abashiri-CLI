@@ -2,6 +2,8 @@ package subdomain
 
 import (
 	"abashiri-cli/core/discovery"
+	"abashiri-cli/storage"
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -13,20 +15,18 @@ import (
 
 var ScanCmd = &cobra.Command{
 	Use:   "scan",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "",
+	Long:  ` `,
 	Run: func(cmd *cobra.Command, args []string) {
 		domain, _ := cmd.Flags().GetString("domain")
-		verbose, _ := cmd.Flags().GetBool("verbose")
+		verbose, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			log.Fatalf("Failed to parse verbose flag: %v", err)
+		}
 		mode, _ := cmd.Flags().GetString("mode")
 
 		if domain == "" {
-			fmt.Println("Error: --domain flag is required")
+			fmt.Println("domain flag is required")
 			cmd.Usage()
 			os.Exit(1)
 		}
@@ -37,11 +37,17 @@ to quickly create a Cobra application.`,
 			log.Fatal(err)
 		}
 		defer db.Close()
-		ds := discovery.NewDomainEnumerationService(db,
+
+		ds := discovery.NewDomainEnumerationService(
+			storage.NewDomainStorage(db),
 			&discovery.Option{
 				Verbose: verbose,
 			},
 		)
-		ds.StartScan(domain, mode)
+		ctx := context.Background()
+		err = ds.StartScan(ctx, domain, mode)
+		if err != nil {
+			log.Fatal(err)
+		}
 	},
 }

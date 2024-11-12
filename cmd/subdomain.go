@@ -10,6 +10,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type SubDomainArgs struct {
+	domain string
+	mode   string
+}
+
+var subDomainArgs = &SubDomainArgs{}
+
 var subdomainCmd = &cobra.Command{
 	Use:   "subdomain",
 	Short: "A brief description of your command",
@@ -25,4 +32,8 @@ func init() {
 	rootCmd.AddCommand(subdomainCmd)
 	subdomainCmd.AddCommand(subdomain.GetCmd)
 	subdomainCmd.AddCommand(subdomain.ScanCmd)
+
+	subdomainCmd.PersistentFlags().StringVar(&subDomainArgs.domain, "domain", "", "root domain")
+	subdomainCmd.MarkPersistentFlagRequired("domain")
+	subdomainCmd.PersistentFlags().StringVar(&subDomainArgs.mode, "mode", "passive", "passive/active")
 }
