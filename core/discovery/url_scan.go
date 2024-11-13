@@ -1,14 +1,13 @@
 package discovery
 
 import (
+	"abashiri-cli/helper"
 	"abashiri-cli/storage"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"sync"
-	"time"
 
 	"github.com/buger/jsonparser"
 )
@@ -56,13 +55,13 @@ func (ues *URLEnumerationService) StartScan(ctx context.Context, domain string) 
 		results = append(results, result...)
 	}
 
-	return ues.urlStorage.RegisterURLs(ctx, domain, results)
+	return ues.urlStorage.RegisterURLs(ctx, domain, helper.RemoveDuplicatesFromArray(results))
 }
 
 func (ues *URLEnumerationService) enumURLFromWayBackMachine(domain string) ([]string, error) {
 	log.Printf("[+] WaybackMachine enumeration for %v", domain)
 	apiURL := fmt.Sprintf("https://web.archive.org/web/timemap/json?url=%s&matchType=prefix&collapse=urlkey&output=json&fl=original&filter=&limit=10000", domain)
-	resp, err := ues.httpClient.GET(apiURL)
+	resp, err := ues.httpClient.GET(apiURL, nil)
 	if err != nil {
 		log.Printf("faled to request: %v", err)
 		return nil, err
@@ -89,49 +88,4 @@ func (ues *URLEnumerationService) enumURLFromWayBackMachine(domain string) ([]st
 	})
 
 	return results, nil
-}
-
-type HTTPClient struct {
-	client     *http.Client
-	maxRetries int
-	retryDelay time.Duration
-}
-
-func newHTTPClient() *HTTPClient {
-	return &HTTPClient{
-		client: &http.Client{
-			Timeout: 15 * time.Second,
-		},
-		maxRetries: 3,
-		retryDelay: 2 * time.Second,
-	}
-}
-
-func (c *HTTPClient) GET(url string) (*http.Response, error) {
-	var resp *http.Response
-	var err error
-
-	for i := 0; i < c.maxRetries; i++ {
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			return nil, err
-		}
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
-
-		resp, err = c.client.Do(req)
-		if err != nil {
-			log.Printf("Request error (attempt %d): %v\n", i+1, err)
-			time.Sleep(c.retryDelay)
-			continue
-		}
-
-		if resp.StatusCode == http.StatusBadRequest {
-			log.Printf("Received 400 status (attempt %d). Retrying...\n", i+1)
-			time.Sleep(c.retryDelay)
-			resp.Body.Close()
-			continue
-		}
-		return resp, nil
-	}
-	return nil, fmt.Errorf("request failed after %d retries: %v", c.maxRetries, err)
 }
