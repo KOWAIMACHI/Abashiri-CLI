@@ -24,11 +24,11 @@ to quickly create a Cobra application.`,
 func init() {
 	rootCmd.AddCommand(showCmd)
 	showCmd.AddCommand(show.ShowDomainsCmd)
-	showCmd.AddCommand(show.ShowLinksCmd)
+	showCmd.AddCommand(show.ShowURLsCmd)
 
 	show.ShowDomainsCmd.PersistentFlags().StringVarP(&scanArgs.domain, "domain", "d", "", "root domain")
 	show.ShowDomainsCmd.MarkPersistentFlagRequired("domain")
 
-	show.ShowLinksCmd.PersistentFlags().StringVarP(&scanArgs.domain, "domain", "d", "", "root domain")
-	show.ShowLinksCmd.MarkPersistentFlagRequired("domain")
+	show.ShowURLsCmd.PersistentFlags().StringVarP(&scanArgs.domain, "domain", "d", "", "root domain")
+	show.ShowURLsCmd.MarkPersistentFlagRequired("domain")
 }
