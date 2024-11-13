@@ -11,14 +11,14 @@ import (
 type DomainStorage interface {
 	CreateDomainIfNotExists(context.Context, string) error
 	RegisterSubDomains(context.Context, string, []string) error
-	GetSubDomains(string) ([]string, error)
+	GetSubDomains(context.Context, string) ([]string, error)
 }
 
 type domainStorage struct {
 	db *sql.DB
 }
 
-func NewDomainStorage(db *sql.DB) *domainStorage {
+func NewDomainStorage(db *sql.DB) DomainStorage {
 	return &domainStorage{
 		db,
 	}
@@ -95,8 +95,7 @@ func (ds *domainStorage) RegisterSubDomains(ctx context.Context, domain string, 
 	return tx.Commit()
 }
 
-func (ds *domainStorage) GetSubDomains(domain string) ([]string, error) {
-	ctx := context.Background()
+func (ds *domainStorage) GetSubDomains(ctx context.Context, domain string) ([]string, error) {
 	query := `SELECT s.name FROM subdomains s JOIN domains d ON s.parent_id = d.id WHERE d.name = ?`
 	rows, err := ds.db.QueryContext(ctx, query, domain)
 	if err != nil {

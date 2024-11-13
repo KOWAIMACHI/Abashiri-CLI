@@ -2,9 +2,43 @@
 ## 🚧work in progress🚧
 
 AmassやSubfinderなどの既存のCLIツールを実行し、収集したサブドメインやWebサービスの情報をSqlite3データベースで管理します。
+今後ちょっとずつ自前実装に変えていきたい実装していきたい。
 
+## Usage
+```
+$  ./abashiri-cli 
+. . 
+し  < ABASHIRI-CLI!!!
+ ▽
 
-## 設計メモ
+Usage:
+  abashiri-cli [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  scan        Scan a domain for subdomains using passive or active methods
+  show        A brief description of your command
+
+Flags:
+  -h, --help      help for abashiri-cli
+  -v, --verbose   Enable verbose output
+
+Use "abashiri-cli [command] --help" for more information about a command
+```
+### Scan
+
+```
+$ ./abashili-cli scan -d example.com
+$ ./abashili-cli scan -d example.com -m active -v
+```
+
+### Show
+```
+$ ./abashili-cli show links -d example.com
+```
+
+## メモ
 
 ## 全体設計
 
@@ -30,15 +64,9 @@ AmassやSubfinderなどの既存のCLIツールを実行し、収集したサブ
 ```
 
 
-## DB設計
+## DB設計(今後)
 
 ```
-- corps
-  - id (PK)
-  - name
-  - created_at
-  - updated_at
-
 - domains (基本的に最初の入力値の予定)
   - id (PK)
   - name
@@ -73,20 +101,4 @@ AmassやSubfinderなどの既存のCLIツールを実行し、収集したサブ
 - [subfinder](https://github.com/projectdiscovery/subfinder)
 - [dnsx](https://github.com/projectdiscovery/dnsx)
 
-## Usage
-
-### subdomain
-
-- **subdomain scan**
-```
-# passive
-abashiri subdomain scan --domain loom.com --mode passive -v
-# active (dns bruteforce)
-abashiri subdomain scan --domain loom.com --mode active -v
-```
-
-- **get data**
-```
-abashiri subdomain get --domain example.com
-```
 

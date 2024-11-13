@@ -11,10 +11,6 @@ import (
 	"path/filepath"
 )
 
-type Option struct {
-	Verbose bool
-}
-
 type DomainEnumerationService struct {
 	domainStorage storage.DomainStorage
 	option        *Option
@@ -53,7 +49,7 @@ func (ds *DomainEnumerationService) StartScan(ctx context.Context, domain, mode 
 func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, domain string) ([]string, error) {
 	scanFunctions := map[string](func(string) ([]string, error)){
 		"Subfinder": ds.executeSubfinderScan,
-		"Amass":     ds.executeAmassScan,
+		// "Amass":     ds.executeAmassScan,
 	}
 
 	var results []string
@@ -112,6 +108,7 @@ func (ds *DomainEnumerationService) executeScanCmd(cmdName string, args []string
 	return nil
 }
 
+// Amass遅すぎ問題
 func (ds *DomainEnumerationService) executeAmassScan(domain string) ([]string, error) {
 	outputFile := fmt.Sprintf("/tmp/amass-passive-%s.txt", domain)
 	args := []string{"enum", "-active", "-d", domain, "-o", outputFile}

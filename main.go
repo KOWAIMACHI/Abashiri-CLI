@@ -14,32 +14,22 @@ func main() {
 	}
 	defer db.Close()
 	sqlStmt := `
-CREATE TABLE IF NOT EXISTS corps (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE IF NOT EXISTS domains (
     id TEXT PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,
-    corp_id TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (corp_id) REFERENCES corps(id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS subdomains (
     id TEXT PRIMARY KEY,
     parent_id TEXT NOT NULL,
-    root_id TEXT NOT NULL,
+    -- root_id TEXT NOT NULL, 今後の課題
     name TEXT NOT NULL,
     tools_detected TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (parent_id) REFERENCES subdomains(id),
-    FOREIGN KEY (root_id) REFERENCES domains(id)
+    FOREIGN KEY (parent_id) REFERENCES subdomains(id)
 );
 
 CREATE TABLE IF NOT EXISTS links (
@@ -47,6 +37,7 @@ CREATE TABLE IF NOT EXISTS links (
     url TEXT NOT NULL,
     domain_id TEXT,
     subdomain_id TEXT,
+    tools_detected TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (domain_id) REFERENCES domains(id),
