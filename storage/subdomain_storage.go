@@ -1,17 +1,16 @@
 package storage
 
 import (
+	"abashiri-cli/helper"
 	"context"
 	"database/sql"
 	"fmt"
-
-	"github.com/google/uuid"
 )
 
 type DomainStorage interface {
 	CreateDomainIfNotExists(context.Context, string) error
 	RegisterSubDomains(context.Context, string, []string) error
-	GetSubDomains(context.Context, string) ([]string, error)
+	GetSubDomainsByParentDomain(context.Context, string) ([]string, error)
 }
 
 type domainStorage struct {
@@ -25,16 +24,15 @@ func NewDomainStorage(db *sql.DB) DomainStorage {
 }
 
 func (ds *domainStorage) CreateDomainIfNotExists(ctx context.Context, domain string) error {
-	var domainID string
-	err := ds.db.QueryRowContext(ctx, "SELECT id FROM domains WHERE name = ?", domain).Scan(&domainID)
+	var domainID int
+	err := ds.db.QueryRowContext(ctx, "SELECT id FROM domains WHERE domain_name = ?", domain).Scan(&domainID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			tx, err := ds.db.BeginTx(ctx, nil)
 			if err != nil {
 				return err
 			}
-			domainID = uuid.New().String()
-			if _, err := tx.ExecContext(ctx, "INSERT INTO domains (id, name) VALUES (?,?)", domainID, domain); err != nil {
+			if _, err := tx.ExecContext(ctx, "INSERT INTO domains (domain_name) VALUES (?)", domain); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -50,56 +48,50 @@ func (ds *domainStorage) CreateDomainIfNotExists(ctx context.Context, domain str
 }
 
 func (ds *domainStorage) RegisterSubDomains(ctx context.Context, domain string, subDomains []string) error {
-	//===========
-	// memo: 別の関数に切り分けるべきだと思う
-	query := `SELECT d.id, s.name FROM domains d LEFT JOIN subdomains s ON d.id = s.parent_id WHERE d.name = ?`
-	rows, err := ds.db.QueryContext(ctx, query, domain)
+	_subDomains, err := ds.GetSubDomainsByParentDomain(ctx, domain)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
-
-	var domainID string
-	existingSubDomains := make(map[string]bool)
-
-	for rows.Next() {
-		var subDomainName sql.NullString
-		if err := rows.Scan(&domainID, &subDomainName); err != nil {
-			return err
-		}
-		if subDomainName.Valid {
-			existingSubDomains[subDomainName.String] = true
-		}
+	subDomains = helper.RemoveDuplicatesBetweenArrays(subDomains, _subDomains)
+	if len(subDomains) == 0 {
+		return nil
 	}
-	if err := rows.Err(); err != nil {
-		return err
-	}
-	//===========
-
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	query = `INSERT INTO subdomains (id, name, parent_id) VALUES (?, ?, ?)`
+	domainID, err := ds.GetDomainIDbyName(ctx, domain)
+	if err != nil {
+		return err
+	}
+	query := `INSERT INTO domains (domain_name, parent_id) VALUES (?, ?)`
 	for _, subDomain := range subDomains {
-		if existingSubDomains[subDomain] {
-			continue
-		}
-		_, err := tx.ExecContext(ctx, query, uuid.New().String(), subDomain, domainID)
+		_, err := tx.ExecContext(ctx, query, subDomain, domainID)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %v", subDomain, err)
 		}
 	}
 	return tx.Commit()
 }
 
-func (ds *domainStorage) GetSubDomains(ctx context.Context, domain string) ([]string, error) {
-	query := `SELECT s.name FROM subdomains s JOIN domains d ON s.parent_id = d.id WHERE d.name = ?`
-	rows, err := ds.db.QueryContext(ctx, query, domain)
+func (ds *domainStorage) GetDomainIDbyName(ctx context.Context, domain string) (int, error) {
+	var domainID int
+	query := `SELECT id FROM domains WHERE domain_name = ?`
+	err := ds.db.QueryRowContext(ctx, query, domain).Scan(&domainID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute query: %w", err)
+		return -1, err
+	}
+	return domainID, nil
+}
+
+func (ds *domainStorage) GetSubDomainsByParentDomain(ctx context.Context, domain string) ([]string, error) {
+	// 指定したdomain自体も含める。問題があれば考える
+	query := `SELECT domain_name FROM domains WHERE parent_id = (SELECT id FROM domains WHERE domain_name = ?) OR domain_name = ?`
+	rows, err := ds.db.QueryContext(ctx, query, domain, domain)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query %v", err)
 	}
 	defer rows.Close()
 	var results []string

@@ -43,7 +43,7 @@ func (ds *DomainEnumerationService) StartScan(ctx context.Context, domain, mode 
 		return err
 	}
 
-	return ds.domainStorage.RegisterSubDomains(ctx, domain, result)
+	return ds.domainStorage.RegisterSubDomains(ctx, domain, helper.RemoveDuplicatesFromArray(result))
 }
 
 func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, domain string) ([]string, error) {
@@ -54,14 +54,14 @@ func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, doma
 
 	var results []string
 	for method, scanfunc := range scanFunctions {
-		log.Printf("[+] %s Passive Scan started", method)
+		log.Printf("[+] %s Passive Scan start", method)
 		result, err := scanfunc(domain)
 		if err != nil {
 			log.Printf("[-] Error at %s Passive Scan for %s: %v", method, domain, err)
 			continue
 		}
 		results = append(results, result...)
-		log.Printf("[+] %s Passive Scan completed", method)
+		log.Printf("[+] %s Passive Scan complete", method)
 	}
 	return results, nil
 }

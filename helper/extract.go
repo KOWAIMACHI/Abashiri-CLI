@@ -31,5 +31,5 @@ func ExtractSubdomains(filePath string, domain string) ([]string, error) {
 		return nil, fmt.Errorf("error removing file: %v", err)
 	}
 
-	return RemoveDuplicates(subdomains), nil
+	return RemoveDuplicatesFromArray(subdomains), nil
 }

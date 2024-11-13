@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-
-	"github.com/google/uuid"
 )
 
 type URLStorage interface {
@@ -24,9 +22,9 @@ func NewURLStorage(db *sql.DB) URLStorage {
 }
 
 func (us *urlStorage) RegisterURLs(ctx context.Context, domain string, urls []string) error {
-	var subdomainID string
-	query := `SELECT id FROM subdomains WHERE name = ?`
-	err := us.db.QueryRowContext(ctx, query, domain).Scan(&subdomainID)
+	var domainID int
+	query := `SELECT id FROM domains WHERE domain_name = ?`
+	err := us.db.QueryRowContext(ctx, query, domain).Scan(&domainID)
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -39,27 +37,27 @@ func (us *urlStorage) RegisterURLs(ctx context.Context, domain string, urls []st
 
 	for _, url := range urls {
 		var count int
-		query = `SELECT COUNT(*) FROM urls WHERE url = ? AND  subdomain_id = ?`
-		err := tx.QueryRowContext(ctx, query, url, subdomainID).Scan(&count)
+		query = `SELECT COUNT(*) FROM urls WHERE url = ? AND  domain_id = ?`
+		err := tx.QueryRowContext(ctx, query, url, domainID).Scan(&count)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to execute query: %w", err)
 		}
 
 		if count > 0 {
 			continue
 		}
 
-		query = `INSERT INTO urls (id, url, subdomain_id) VALUES (?, ?, ?)`
-		_, err = tx.ExecContext(ctx, query, uuid.New().String(), url, subdomainID)
+		query = `INSERT INTO urls (url, domain_id) VALUES (?, ?)`
+		_, err = tx.ExecContext(ctx, query, url, domainID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to execute query: %w", err)
 		}
 	}
 	return tx.Commit()
 }
 
 func (us *urlStorage) GetURLs(ctx context.Context, domain string) ([]string, error) {
-	query := `SELECT l.url FROM urls l JOIN subdomains s ON l.subdomain_id = s.id WHERE s.name = ?`
+	query := `SELECT l.url FROM urls l JOIN domains d ON l.domain_id = d.id WHERE d.domain_name = ?`
 	rows, err := us.db.QueryContext(ctx, query, domain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)

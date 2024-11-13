@@ -15,20 +15,19 @@ func main() {
 	defer db.Close()
 	sqlStmt := `
 CREATE TABLE IF NOT EXISTS domains (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     domain_name TEXT UNIQUE NOT NULL,
-    parent_id TEXT ON DELETE CASCADE,
+    parent_id TEXT, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (parent_id) REFERENCES domains(id),
+    FOREIGN KEY (parent_id) REFERENCES domains(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS urls (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     url TEXT NOT NULL,
     domain_id TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (subdomain_id) REFERENCES subdomains(id)
+    FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE
 );`
 
 	_, err = db.Exec(sqlStmt)

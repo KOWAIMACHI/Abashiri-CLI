@@ -14,7 +14,7 @@ import (
 )
 
 var ShowURLsCmd = &cobra.Command{
-	Use:   "urls",
+	Use:   "url",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -34,7 +34,7 @@ to quickly create a Cobra application.`,
 
 		// domainにchildがいれば、再起的に表示したい
 		// 今は、とりあえずrootドメインから取れる状態
-		domains, err := ds.GetSubDomains(ctx, domain)
+		domains, err := ds.GetSubDomainsByParentDomain(ctx, domain)
 		if err != nil {
 			log.Fatal(err)
 		}
