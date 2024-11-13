@@ -50,7 +50,11 @@ The results are then stored in a database for later reference.`,
 		}
 		fmt.Printf("[+] Scanning domain: %s\n", domain)
 
-		db, err := sql.Open("sqlite3", "./abashiri.db")
+		dir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+		db, err := sql.Open("sqlite3", fmt.Sprintf("%s/.abashiri/abashiri.db", dir))
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"abashiri-cli/helper"
 	"context"
 	"database/sql"
 	"fmt"
@@ -10,7 +9,7 @@ import (
 type DomainStorage interface {
 	CreateDomainIfNotExists(context.Context, string) error
 	RegisterSubDomains(context.Context, string, []string) error
-	GetSubDomainsByParentDomain(context.Context, string) ([]string, error)
+	GetSubDomainsByDomain(context.Context, string) ([]string, error)
 }
 
 type domainStorage struct {
@@ -23,6 +22,7 @@ func NewDomainStorage(db *sql.DB) DomainStorage {
 	}
 }
 
+// CreateDomainIfNotExistsはドメインが存在しなかった場合にそのドメインをDBに登録する
 func (ds *domainStorage) CreateDomainIfNotExists(ctx context.Context, domain string) error {
 	var domainID int
 	err := ds.db.QueryRowContext(ctx, "SELECT id FROM domains WHERE domain_name = ?", domain).Scan(&domainID)
@@ -47,15 +47,8 @@ func (ds *domainStorage) CreateDomainIfNotExists(ctx context.Context, domain str
 	return nil
 }
 
+// RegisterSubDomainsは引数で渡されたsubDomainsをDBに登録する
 func (ds *domainStorage) RegisterSubDomains(ctx context.Context, domain string, subDomains []string) error {
-	_subDomains, err := ds.GetSubDomainsByParentDomain(ctx, domain)
-	if err != nil {
-		return err
-	}
-	subDomains = helper.RemoveDuplicatesBetweenArrays(subDomains, _subDomains)
-	if len(subDomains) == 0 {
-		return nil
-	}
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -66,13 +59,17 @@ func (ds *domainStorage) RegisterSubDomains(ctx context.Context, domain string, 
 	if err != nil {
 		return err
 	}
-	query := `INSERT INTO domains (domain_name, parent_id) VALUES (?, ?)`
+
+	// HACKME: 急にdev.app.example.comみたいなドメインを収集した場合、app.example.comが存在しないため、parent_idが親ドメインという関係にならない
+	// 機能的な問題で許容してもいいかなという気持ちがありつつ、今後どうするか考える
+	query := `INSERT OR IGNORE INTO domains (domain_name, parent_id) VALUES (?, ?)`
 	for _, subDomain := range subDomains {
 		_, err := tx.ExecContext(ctx, query, subDomain, domainID)
 		if err != nil {
 			return fmt.Errorf("%s: %v", subDomain, err)
 		}
 	}
+
 	return tx.Commit()
 }
 
@@ -86,9 +83,31 @@ func (ds *domainStorage) GetDomainIDbyName(ctx context.Context, domain string) (
 	return domainID, nil
 }
 
-func (ds *domainStorage) GetSubDomainsByParentDomain(ctx context.Context, domain string) ([]string, error) {
-	// 指定したdomain自体も含める。問題があれば考える
-	query := `SELECT domain_name FROM domains WHERE parent_id = (SELECT id FROM domains WHERE domain_name = ?) OR domain_name = ?`
+/*
+再起的にsubdomainを取得
+id, domain_name, parent_id
+1,example.com,
+2,app.example.com,1
+3.test.app.example.com,2
+
+ex:
+GetSubDomainByparentDomain(ctx, "example.com")
+-> example.com, app.example.com, test.app.example.com
+*/
+func (ds *domainStorage) GetSubDomainsByDomain(ctx context.Context, domain string) ([]string, error) {
+
+	query := `
+WITH RECURSIVE domain_hierarchy(id, domain_name, parent_id) AS (
+	SELECT id, domain_name, parent_id FROM domains WHERE domain_name = ?
+
+	UNION ALL
+
+	SELECT d.id, d.domain_name, d.parent_id
+	FROM domains d
+	INNER JOIN domain_hierarchy dh ON dh.id = d.parent_id
+)
+SELECT domain_name FROM domain_hierarchy;
+`
 	rows, err := ds.db.QueryContext(ctx, query, domain, domain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query %v", err)

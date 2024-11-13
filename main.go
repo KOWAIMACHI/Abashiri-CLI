@@ -5,10 +5,26 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 )
 
+func init() {
+	dir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err = os.MkdirAll(fmt.Sprintf("%s/.abashiri", dir), 0755); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
-	db, err := sql.Open("sqlite3", "./abashiri.db")
+	dir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db, err := sql.Open("sqlite3", fmt.Sprintf("%s/.abashiri/abashiri.db", dir))
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -36,7 +36,7 @@ func (es *EnumerationService) StartScan(ctx context.Context, domain string, mode
 
 	// iterate domains
 	// ===ここ 並列処理にしたいし、recursiveな調査したい
-	domains, err := es.domainEnumSrv.domainStorage.GetSubDomainsByParentDomain(ctx, domain)
+	domains, err := es.domainEnumSrv.domainStorage.GetSubDomainsByDomain(ctx, domain)
 	if err != nil {
 		return err
 	}
