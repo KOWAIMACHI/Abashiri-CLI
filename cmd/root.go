@@ -14,7 +14,7 @@ type RootArgs struct {
 var rootArgs = &RootArgs{}
 
 var rootCmd = &cobra.Command{
-	Use:   "abashiri-cli",
+	Use:   "abashiri",
 	Short: "",
 	Long: `. . 
 し  < ABASHIRI-CLI!!!

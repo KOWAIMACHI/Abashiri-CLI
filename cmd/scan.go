@@ -62,7 +62,7 @@ The results are then stored in a database for later reference.`,
 
 		es := discovery.NewEumerationService(
 			discovery.NewDomainEnumerationService(storage.NewDomainStorage(db), option),
-			discovery.NewLinkEumerationService(storage.NewLinkStorage(db)),
+			discovery.NewURLEumerationService(storage.NewURLStorage(db)),
 			option)
 
 		ctx := context.Background()

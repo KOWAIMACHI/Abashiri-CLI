@@ -13,9 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// showLinksCmd represents the showLinks command
-var ShowLinksCmd = &cobra.Command{
-	Use:   "links",
+var ShowURLsCmd = &cobra.Command{
+	Use:   "url",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -30,27 +29,27 @@ to quickly create a Cobra application.`,
 			log.Fatal(err)
 		}
 		ds := storage.NewDomainStorage(db)
-		ls := storage.NewLinkStorage(db)
+		ls := storage.NewURLStorage(db)
 		ctx := context.Background()
 
 		// domainにchildがいれば、再起的に表示したい
 		// 今は、とりあえずrootドメインから取れる状態
-		domains, err := ds.GetSubDomains(ctx, domain)
+		domains, err := ds.GetSubDomainsByParentDomain(ctx, domain)
 		if err != nil {
 			log.Fatal(err)
 		}
 		for _, subdomain := range domains {
-			links, err := ls.GetLinks(ctx, subdomain)
+			urls, err := ls.GetURLs(ctx, subdomain)
 			if err != nil {
 				log.Fatal(err)
 			}
-			if links == nil {
+			if urls == nil {
 				continue
 			}
 
-			fmt.Printf("\nLinks of %s\n", subdomain)
-			for _, link := range links {
-				fmt.Println(link)
+			fmt.Printf("\nURLs of %s\n", subdomain)
+			for _, url := range urls {
+				fmt.Println(url)
 			}
 			fmt.Printf("\n")
 		}

@@ -11,18 +11,18 @@ type Option struct {
 
 type EnumerationService struct {
 	domainEnumSrv *DomainEnumerationService
-	linkEnumSrv   *LinkEnumerationService
+	urlEnumSrv    *URLEnumerationService
 	option        *Option
 }
 
-func NewEumerationService(des *DomainEnumerationService, les *LinkEnumerationService, option *Option) *EnumerationService {
+func NewEumerationService(des *DomainEnumerationService, ues *URLEnumerationService, option *Option) *EnumerationService {
 	// TODO: optionの整理
 	des.option = option
-	les.option = option
+	ues.option = option
 
 	return &EnumerationService{
 		domainEnumSrv: des,
-		linkEnumSrv:   les,
+		urlEnumSrv:    ues,
 		option:        option,
 	}
 }
@@ -35,19 +35,24 @@ func (es *EnumerationService) StartScan(ctx context.Context, domain string, mode
 	log.Println("[+] SubDomain Enumeration complete")
 
 	// iterate domains
-	domains, err := es.domainEnumSrv.domainStorage.GetSubDomains(ctx, domain)
+	// ===ここ 並列処理にしたいし、recursiveな調査したい
+	domains, err := es.domainEnumSrv.domainStorage.GetSubDomainsByParentDomain(ctx, domain)
 	if err != nil {
 		return err
 	}
 
-	log.Println("[+] Link Enumeration start")
+	log.Println("[+] URL Enumeration start")
 
 	for _, domain := range domains {
-		es.linkEnumSrv.StartScan(ctx, domain)
+		err := es.urlEnumSrv.StartScan(ctx, domain)
+		if err != nil {
+			return err
+		}
 	}
+	// ===
 
-	log.Println("[+] Link Enumeration complete")
-	log.Printf("[+] You can confirm the result : abashili show -d %v", domain)
-
+	log.Println("[+] URL Enumeration complete")
+	log.Printf("[+] check found domains : abashiri-cli show domain -d %v", domain)
+	log.Printf("[+] check found links : abashiri-cli show url -d %v", domain)
 	return nil
 }

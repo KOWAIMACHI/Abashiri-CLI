@@ -15,35 +15,20 @@ func main() {
 	defer db.Close()
 	sqlStmt := `
 CREATE TABLE IF NOT EXISTS domains (
-    id TEXT PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    domain_name TEXT UNIQUE NOT NULL,
+    parent_id TEXT, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    FOREIGN KEY (parent_id) REFERENCES domains(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS subdomains (
-    id TEXT PRIMARY KEY,
-    parent_id TEXT NOT NULL,
-    -- root_id TEXT NOT NULL, 今後の課題
-    name TEXT NOT NULL,
-    tools_detected TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (parent_id) REFERENCES subdomains(id)
-);
-
-CREATE TABLE IF NOT EXISTS links (
-    id TEXT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS urls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     url TEXT NOT NULL,
     domain_id TEXT,
-    subdomain_id TEXT,
-    tools_detected TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (domain_id) REFERENCES domains(id),
-    FOREIGN KEY (subdomain_id) REFERENCES subdomains(id)
-);
-`
+    FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE
+);`
 
 	_, err = db.Exec(sqlStmt)
 	if err != nil {
