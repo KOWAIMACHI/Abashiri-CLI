@@ -6,7 +6,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os/exec"
@@ -145,7 +145,7 @@ func (ds *DomainEnumerationService) enumDomainFromAlienVaultOTX(domain string) (
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("[-] (%s) failed to parse response: %v", domain, err)
 		return nil, err
@@ -186,7 +186,7 @@ func (ds *DomainEnumerationService) enumURLFromBevigil(domain string) ([]string,
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("failed to parse response: %v", err)
 		return nil, err
