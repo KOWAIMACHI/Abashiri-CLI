@@ -62,14 +62,14 @@ func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, doma
 
 	var results []string
 	for method, scanfunc := range scanFunctions {
-		log.Printf("[+] %s Passive SubDomain Enumeration start: %s", method, domain)
+		log.Printf("[+] %s Passive subdomain Enumeration start: %s", method, domain)
 		result, err := scanfunc(domain)
 		if err != nil {
 			log.Printf("[-] Error at %s Passive Scan for %s: %v", method, domain, err)
 			continue
 		}
 		results = append(results, result...)
-		log.Printf("[+] %s Passive SubDomain Enumeration complete: %s", method, domain)
+		log.Printf("[+] %s Passive subdomain Enumeration complete: %s", method, domain)
 	}
 	return results, nil
 }

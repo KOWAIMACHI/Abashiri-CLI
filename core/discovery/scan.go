@@ -28,11 +28,11 @@ func NewEumerationService(des *DomainEnumerationService, ues *URLEnumerationServ
 }
 
 func (es *EnumerationService) StartScan(ctx context.Context, domain string, mode string) error {
-	log.Println("[+] SubDomain Enumeration start")
+	log.Println("[+] subdomain Enumeration start")
 	if err := es.domainEnumSrv.StartScan(ctx, domain, mode); err != nil {
 		return err
 	}
-	log.Println("[+] SubDomain Enumeration complete")
+	log.Println("[+] subdomain Enumeration complete")
 
 	// iterate domains
 	// ===ここ 並列処理にしたいし、recursiveな調査したい

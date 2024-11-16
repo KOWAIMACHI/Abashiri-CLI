@@ -5,8 +5,10 @@ import (
 	"abashiri-cli/storage"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
+	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/buger/jsonparser"
@@ -29,6 +31,7 @@ func (ues *URLEnumerationService) StartScan(ctx context.Context, domain string) 
 	var wg sync.WaitGroup
 	scanFunctions := map[string](func(string) ([]string, error)){
 		"waybackmachine": ues.enumURLFromWayBackMachine,
+		"commoncrawl":    ues.enumURLFromCommonCrawl,
 	}
 
 	f := func(method string, scanfunc func(string) ([]string, error), ch chan<- []string) {
@@ -58,6 +61,43 @@ func (ues *URLEnumerationService) StartScan(ctx context.Context, domain string) 
 	return ues.urlStorage.RegisterURLs(ctx, domain, helper.RemoveDuplicatesFromArray(results))
 }
 
+func (ues *URLEnumerationService) enumURLFromCommonCrawl(domain string) ([]string, error) {
+	log.Printf("[+] Common Crawl enumeration for %v", domain)
+	apiURL := fmt.Sprintf("https://index.commoncrawl.org/CC-MAIN-2024-42-index?url=%s/*&output=json", domain)
+	resp, err := ues.httpClient.GET(apiURL, nil)
+	if err != nil {
+		log.Printf("faled to request: %v", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("failed to parse response: %v", err)
+		return nil, err
+	}
+
+	// JSONとしてパースできるように文字列操作
+	re := regexp.MustCompile(`(?m)}$`)
+	b := re.ReplaceAllString(string(body), "},\n")
+	json := "[" + b[:len(b)-2] + "]"
+
+	var results []string
+	jsonparser.ArrayEach([]byte(json), func(value []byte, dataType jsonparser.ValueType, offset int, _ error) {
+		url, err := jsonparser.GetString(value, "url")
+		if err != nil {
+			m, err := jsonparser.GetString(value, "message")
+			if strings.Contains(m, "No Captures found for:") {
+				return
+			}
+			log.Printf("failed to parse response: %v", err)
+			return
+		}
+		results = append(results, url)
+	})
+	return results, nil
+}
+
 func (ues *URLEnumerationService) enumURLFromWayBackMachine(domain string) ([]string, error) {
 	log.Printf("[+] WaybackMachine enumeration for %v", domain)
 	apiURL := fmt.Sprintf("https://web.archive.org/web/timemap/json?url=%s&matchType=prefix&collapse=urlkey&output=json&fl=original&filter=&limit=10000", domain)
@@ -68,7 +108,7 @@ func (ues *URLEnumerationService) enumURLFromWayBackMachine(domain string) ([]st
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("failed to parse response: %v", err)
 		return nil, err
