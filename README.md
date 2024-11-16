@@ -1,33 +1,16 @@
 # Abashiri-CLI
-## 🚧work in progress🚧
+Abashiri-CLI automates subdomain enumeration and URL enumeration for each subdomain, managing the results in a database.
 
-AmassやSubfinderなどの既存のCLIツールを実行し、収集したサブドメインやWebサービスの情報をSqlite3データベースで管理します。
-今後ちょっとずつ自前実装に変えていきたい実装していきたい。
-
-## Usage
 ```
 $  ./abashiri-cli 
 . . 
 し  < ABASHIRI-CLI!!!
  ▽
-
-Usage:
-  abashiri-cli [command]
-
-Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  help        Help about any command
-  scan        Scan a domain for subdomains using passive or active methods
-  show        A brief description of your command
-
-Flags:
-  -h, --help      help for abashiri-cli
-  -v, --verbose   Enable verbose output
-
-Use "abashiri-cli [command] --help" for more information about a command
 ```
-### Scan
 
+## Usage
+
+### Scan
 ```
 $ ./abashili-cli scan -d example.com
 $ ./abashili-cli scan -d example.com -m active -v
@@ -38,7 +21,34 @@ $ ./abashili-cli scan -d example.com -m active -v
 $ ./abashili-cli show links -d example.com
 ```
 
-## メモ
+## 現在の依存関係　
+以下のツールが実行可能な環境であること(自前実装に変えていきたい)
+- [subfinder](https://github.com/projectdiscovery/subfinder)
+- [dnsx](https://github.com/projectdiscovery/dnsx)
+
+---
+
+## TODO
+
+- [ ] サブドメイン列挙
+現状subfinderに依存しているので棚卸しする
+
+- [ ] URL列挙
+  - [x] Wayback Machine
+  - [x] Common Crawl
+  - [ ] OTX AlienVault
+  - [ ] urlscan.io
+  - [ ] Search Engines(Google, DuckDuckGo, Bing)
+
+- [ ] 操作関連
+  - [ ] 全ドメインの表示
+  - [ ] scan時にカンマ区切りでドメインを渡せるようにする
+
+- [ ] その他
+  - [ ] core/discovery/url_scan.goのテスト
+  - [ ] ドメインの親子関係の整合性確認ロジック
+  - [ ] 管理IPアドレス収集のためにDB設計
+
 
 ## 全体設計
 
@@ -92,13 +102,5 @@ $ ./abashili-cli show links -d example.com
   - updated_at
 ```
 
-
----
-
-## Prerequirement
-以下のツールが実行可能な環境であること
-- [amass](https://github.com/owasp-amass/amass)
-- [subfinder](https://github.com/projectdiscovery/subfinder)
-- [dnsx](https://github.com/projectdiscovery/dnsx)
 
 

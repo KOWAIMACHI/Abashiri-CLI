@@ -12,13 +12,13 @@ import (
 // showCmd represents the show command
 var showCmd = &cobra.Command{
 	Use:   "show",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "The \"show\" commands display the collected domains or urls",
+	Long: `The "show" command display the list of domains or urls that have been collected during the scanning process.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Example usage:
+  $ abashiri show domain -all
+  $ abashiri show domain -d example.com
+  $ abashiri show url -d example.com`,
 }
 
 func init() {

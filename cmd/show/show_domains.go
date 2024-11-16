@@ -14,9 +14,11 @@ import (
 
 var ShowDomainsCmd = &cobra.Command{
 	Use:   "domain",
-	Short: "List all enumerated subdomains for a given domain",
-	Long: `This command retrieves and lists all the subdomains associated with a specified domain stored in an SQLite database.
-It is part of a tool for managing collected domains and URLs, providing an easy way to view all subdomains that have been previously stored.`,
+	Short: "The \"domain\" sub commands display the collected domain",
+	Long: `The "domain" sub command display the list of domains that have been collected during the scanning process.
+
+Example usage:
+  $ abashiri show domain -d example.com`,
 	Run: func(cmd *cobra.Command, args []string) {
 		domain, _ := cmd.Flags().GetString("domain")
 

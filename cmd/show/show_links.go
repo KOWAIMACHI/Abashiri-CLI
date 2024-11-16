@@ -16,13 +16,11 @@ import (
 
 var ShowURLsCmd = &cobra.Command{
 	Use:   "url",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "The \"url\" sub commands display the collected url",
+	Long: `The "url" sub command display the list of urls that have been collected during the scanning process.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Example usage:
+  $ abashiri show url -d example.com`,
 	Run: func(cmd *cobra.Command, args []string) {
 		domain, _ := cmd.Flags().GetString("domain")
 

@@ -99,7 +99,7 @@ func (ues *URLEnumerationService) enumURLFromCommonCrawl(domain string) ([]strin
 }
 
 func (ues *URLEnumerationService) enumURLFromWayBackMachine(domain string) ([]string, error) {
-	log.Printf("[+] WaybackMachine enumeration for %v", domain)
+	log.Printf("[+] Wayback Machine enumeration for %v", domain)
 	apiURL := fmt.Sprintf("https://web.archive.org/web/timemap/json?url=%s&matchType=prefix&collapse=urlkey&output=json&fl=original&filter=&limit=10000", domain)
 	resp, err := ues.httpClient.GET(apiURL, nil)
 	if err != nil {

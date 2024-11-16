@@ -25,16 +25,21 @@ var scanArgs = &ScanArgs{}
 
 var scanCmd = &cobra.Command{
 	Use:   "scan",
-	Short: "Scan a domain for subdomains using passive or active methods",
-	Long: `This command scans a given domain to discover subdomains using either passive or active techniques.
-Passive scanning involves gathering subdomains from publicly available sources.
- - Subfinder
- - Amass
+	Short: "The \"scan\" command performs comprehensive subdomain and URL discovery for a given domain",
+	Long: `The "scan" command performs comprehensive subdomain and URL discovery for a given domain
 
-Active scanning performs actual requests to identify live subdomains.
- - DNSBruteforce
+Subdomain enumeration
+  Passive Scanning: Collects subdomains from publicly available sources without direct interaction.
+  Active Scanning: Actively probes for live subdomains through direct requests.
 
-The results are then stored in a database for later reference.`,
+URL enumeration
+  Passive Scanning: Collects urls from publicly available sources without direct interaction.
+  Active Scanning: Actively probes for live subdomains through direct requests.
+
+Example usage:
+  $ abashiri scan -d example.com
+  $ abashiri scan -d example.com -m passive
+`,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		domain, _ := cmd.Flags().GetString("domain")
