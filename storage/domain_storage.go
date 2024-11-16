@@ -10,6 +10,7 @@ type DomainStorage interface {
 	CreateDomainIfNotExists(context.Context, string) error
 	RegisterSubDomains(context.Context, string, []string) error
 	GetSubDomainsByDomain(context.Context, string) ([]string, error)
+	GetRootDomains(context.Context) ([]string, error)
 }
 
 type domainStorage struct {
@@ -75,12 +76,33 @@ func (ds *domainStorage) RegisterSubDomains(ctx context.Context, domain string, 
 
 func (ds *domainStorage) GetDomainIDbyName(ctx context.Context, domain string) (int, error) {
 	var domainID int
-	query := `SELECT id FROM domains WHERE domain_name = ?`
+	query := `SELECT domain_name FROM domains WHERE domain_name = ?`
 	err := ds.db.QueryRowContext(ctx, query, domain).Scan(&domainID)
 	if err != nil {
 		return -1, err
 	}
 	return domainID, nil
+}
+
+func (ds *domainStorage) GetRootDomains(ctx context.Context) ([]string, error) {
+	query := `SELECT domain_name FROM domains WHERE parent_id IS NULL`
+	rows, err := ds.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	var results []string
+	for rows.Next() {
+		var domain string
+		if err := rows.Scan(&domain); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+		results = append(results, domain)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error occurred during row iteration: %w", err)
+	}
+
+	return results, nil
 }
 
 /*

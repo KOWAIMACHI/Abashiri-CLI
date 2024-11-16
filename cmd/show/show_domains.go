@@ -18,10 +18,9 @@ var ShowDomainsCmd = &cobra.Command{
 	Long: `The "domain" sub command display the list of domains that have been collected during the scanning process.
 
 Example usage:
-  $ abashiri show domain -d example.com`,
+  $ abashiri show domain -d example.com
+  $ abashiri show domain --root/-r`,
 	Run: func(cmd *cobra.Command, args []string) {
-		domain, _ := cmd.Flags().GetString("domain")
-
 		dir, err := os.UserHomeDir()
 		if err != nil {
 			log.Fatal(err)
@@ -33,13 +32,53 @@ Example usage:
 		defer db.Close()
 		ds := storage.NewDomainStorage(db)
 		ctx := context.Background()
-		domains, err := ds.GetSubDomainsByDomain(ctx, domain)
+
+		isRoot, err := cmd.Flags().GetBool("root")
+		if err != nil {
+			log.Fatalf("Failed to parse root flag: %v", err)
+		}
+
+		if isRoot {
+			showRootDomains(ctx, ds)
+			return
+		}
+
+		domain, err := cmd.Flags().GetString("domain")
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		for _, subdomain := range domains {
-			fmt.Println(subdomain)
+		if domain == "" {
+			cmd.Help()
+			return
+		}
+
+		if err := showSubDomains(ctx, ds, domain); err != nil {
+			log.Fatal(err)
 		}
 	},
+}
+
+func showRootDomains(ctx context.Context, ds storage.DomainStorage) error {
+	domains, err := ds.GetRootDomains(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, domain := range domains {
+		fmt.Println(domain)
+	}
+	return nil
+}
+
+func showSubDomains(ctx context.Context, ds storage.DomainStorage, domain string) error {
+	domains, err := ds.GetSubDomainsByDomain(ctx, domain)
+	if err != nil {
+		return err
+	}
+
+	for _, domain := range domains {
+		fmt.Println(domain)
+	}
+	return nil
 }
