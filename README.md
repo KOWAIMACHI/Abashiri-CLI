@@ -12,17 +12,36 @@ $  ./abashiri-cli
 
 ### Scan
 ```
+パッシブスキャン dns bruteforceを行わない
 $ ./abashili-cli scan -d example.com
-$ ./abashili-cli scan -d example.com -m active -v
+
+アクティブスキャン dns bruteforceも行う
+$ ./abashili-cli scan -d example.com -m active
 ```
 
 ### Show
+
 ```
-$ ./abashili-cli show links -d example.com
+DBに登録されたルートドメインの表示
+$ ./abashili-cli show domain --root
+
+指定したドメインに紐づくサブドメインの表示
+$ ./abashili-cli show domain -d example.com
+
+指定したドメインに関連するサブドメインのURLを表示
+$ ./abashili-cli show url -d example.com
 ```
 
+
+### Delete
+```
+ルートドメインをSQLから削除
+$ ./abashili-cli delete -d example.com
+```
+
+
 ## 現在の依存関係　
-以下のツールが実行可能な環境であること(自前実装に変えていきたい)
+以下のツールが実行可能な環境であること
 - [subfinder](https://github.com/projectdiscovery/subfinder)
 - [dnsx](https://github.com/projectdiscovery/dnsx)
 
