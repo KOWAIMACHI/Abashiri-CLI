@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
@@ -21,17 +20,8 @@ Example usage:
   $ abashiri show domain -d example.com
   $ abashiri show domain --root/-r`,
 	Run: func(cmd *cobra.Command, args []string) {
-		dir, err := os.UserHomeDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-		db, err := sql.Open("sqlite3", fmt.Sprintf("%s/.abashiri/abashiri.db", dir))
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer db.Close()
+		db := cmd.Context().Value("db").(*sql.DB)
 		ds := storage.NewDomainStorage(db)
-		ctx := context.Background()
 
 		isRoot, err := cmd.Flags().GetBool("root")
 		if err != nil {
@@ -39,7 +29,7 @@ Example usage:
 		}
 
 		if isRoot {
-			showRootDomains(ctx, ds)
+			showRootDomains(cmd.Context(), ds)
 			return
 		}
 
@@ -53,7 +43,7 @@ Example usage:
 			return
 		}
 
-		if err := showSubDomains(ctx, ds, domain); err != nil {
+		if err := showSubDomains(cmd.Context(), ds, domain); err != nil {
 			log.Fatal(err)
 		}
 	},

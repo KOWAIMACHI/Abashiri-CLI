@@ -11,6 +11,7 @@ type DomainStorage interface {
 	RegisterSubDomains(context.Context, string, []string) error
 	GetSubDomainsByDomain(context.Context, string) ([]string, error)
 	GetRootDomains(context.Context) ([]string, error)
+	DeleteDomains(context.Context, string) error
 }
 
 type domainStorage struct {
@@ -76,7 +77,7 @@ func (ds *domainStorage) RegisterSubDomains(ctx context.Context, domain string, 
 
 func (ds *domainStorage) GetDomainIDbyName(ctx context.Context, domain string) (int, error) {
 	var domainID int
-	query := `SELECT domain_name FROM domains WHERE domain_name = ?`
+	query := `SELECT id FROM domains WHERE domain_name = ?`
 	err := ds.db.QueryRowContext(ctx, query, domain).Scan(&domainID)
 	if err != nil {
 		return -1, err
@@ -130,7 +131,7 @@ WITH RECURSIVE domain_hierarchy(id, domain_name, parent_id) AS (
 )
 SELECT domain_name FROM domain_hierarchy;
 `
-	rows, err := ds.db.QueryContext(ctx, query, domain, domain)
+	rows, err := ds.db.QueryContext(ctx, query, domain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query %v", err)
 	}
@@ -147,4 +148,36 @@ SELECT domain_name FROM domain_hierarchy;
 		return nil, fmt.Errorf("error occurred during row iteration: %w", err)
 	}
 	return results, nil
+}
+
+func (ds *domainStorage) DeleteDomains(ctx context.Context, domain string) error {
+
+	tx, err := ds.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to start transaction: %w", err)
+	}
+	var domainID int
+	query := `SELECT id FROM domains WHERE domain_name = ?`
+	if err = tx.QueryRowContext(ctx, query, domain).Scan(&domainID); err != nil {
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, "DELETE FROM domains WHERE id = ?", domainID)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete root domain %s: %w", domain, err)
+	}
+
+	_, err = tx.ExecContext(ctx, "DELETE FROM domains WHERE parent_id = ?", domainID)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete subdomains for %s: %w", domain, err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+
 }

@@ -6,7 +6,6 @@ package cmd
 import (
 	"abashiri-cli/core/discovery"
 	"abashiri-cli/storage"
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -55,15 +54,7 @@ Example usage:
 		}
 		fmt.Printf("[+] Scanning domain: %s\n", domain)
 
-		dir, err := os.UserHomeDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-		db, err := sql.Open("sqlite3", fmt.Sprintf("%s/.abashiri/abashiri.db", dir))
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer db.Close()
+		db := cmd.Context().Value("db").(*sql.DB)
 
 		option := &discovery.Option{
 			Verbose: verbose,
@@ -74,8 +65,7 @@ Example usage:
 			discovery.NewURLEumerationService(storage.NewURLStorage(db)),
 			option)
 
-		ctx := context.Background()
-		err = es.StartScan(ctx, domain, mode)
+		err = es.StartScan(cmd.Context(), domain, mode)
 		if err != nil {
 			log.Fatal(err)
 		}
