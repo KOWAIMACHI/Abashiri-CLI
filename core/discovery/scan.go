@@ -28,11 +28,11 @@ func NewEumerationService(des *DomainEnumerationService, ues *URLEnumerationServ
 }
 
 func (es *EnumerationService) StartScan(ctx context.Context, domain string, mode string) error {
-	log.Println("[+] subdomain Enumeration start")
+	log.Println("[+] subdomain enumeration start")
 	if err := es.domainEnumSrv.StartScan(ctx, domain, mode); err != nil {
 		return err
 	}
-	log.Println("[+] subdomain Enumeration complete")
+	log.Println("[+] subdomain enumeration complete")
 
 	// iterate domains
 	// ===ここ 並列処理にしたいし、recursiveな調査したい
@@ -41,7 +41,7 @@ func (es *EnumerationService) StartScan(ctx context.Context, domain string, mode
 		return err
 	}
 
-	log.Println("[+] URL Enumeration start")
+	log.Println("[+] URL enumeration start")
 
 	for _, domain := range domains {
 		err := es.urlEnumSrv.StartScan(ctx, domain)
@@ -51,8 +51,8 @@ func (es *EnumerationService) StartScan(ctx context.Context, domain string, mode
 	}
 	// ===
 
-	log.Println("[+] URL Enumeration complete")
-	log.Printf("[+] check found domains : abashiri-cli show domain -d %v", domain)
-	log.Printf("[+] check found links : abashiri-cli show url -d %v", domain)
+	log.Println("[+] URL enumeration complete")
+	log.Printf("[+] check found domains : abashiri show domain -d %v", domain)
+	log.Printf("[+] check found links : abashiri show url -d %v", domain)
 	return nil
 }

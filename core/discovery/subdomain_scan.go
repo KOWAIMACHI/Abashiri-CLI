@@ -9,8 +9,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/buger/jsonparser"
 )
@@ -62,14 +62,14 @@ func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, doma
 
 	var results []string
 	for method, scanfunc := range scanFunctions {
-		log.Printf("[+] %s Passive subdomain Enumeration start: %s", method, domain)
+		log.Printf("[+] %s start: %s", method, domain)
 		result, err := scanfunc(domain)
 		if err != nil {
 			log.Printf("[-] Error at %s Passive Scan for %s: %v", method, domain, err)
 			continue
 		}
 		results = append(results, result...)
-		log.Printf("[+] %s Passive subdomain Enumeration complete: %s", method, domain)
+		log.Printf("[+] %s complete: %s", method, domain)
 	}
 	return results, nil
 }
@@ -210,11 +210,17 @@ func (ds *DomainEnumerationService) enumURLFromBevigil(domain string) ([]string,
 }
 
 func (ds *DomainEnumerationService) executeDNSBruteForce(ctx context.Context, domain string) ([]string, error) {
+	log.Printf("[+] DNS bruteforce start: %s", domain)
 	outputFile := fmt.Sprintf("/tmp/dnsbrute-%s.txt", domain)
-	wordlistPath := filepath.Join("./wordlists/dns", "subdomains-top1million-20000.txt")
+	dir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+	wordlistPath := fmt.Sprintf("%s/.abashiri/subdomains-top1million-20000.txt", dir)
 	args := []string{"-d", domain, "-w", wordlistPath, "-o", outputFile}
 	if err := ds.executeScanCmd("dnsx", args); err != nil {
 		return nil, err
 	}
+	log.Printf("[+] DNS bruteforce end: %s", domain)
 	return helper.ExtractSubdomains(outputFile, domain)
 }
