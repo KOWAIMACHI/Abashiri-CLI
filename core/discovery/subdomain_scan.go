@@ -36,17 +36,17 @@ func (ds *DomainEnumerationService) StartScan(ctx context.Context, domain, mode 
 	}
 	var result []string
 
-	switch mode {
-	case "passive":
-		result, err = ds.executePassiveScan(ctx, domain)
-	case "active":
-		result, err = ds.executeActiveScan(ctx, domain)
-	default:
-		return fmt.Errorf("unknown scan mode: %s", mode)
-	}
-
+	result, err = ds.executePassiveScan(ctx, domain)
 	if err != nil {
 		return err
+	}
+
+	if mode == "active" {
+		res, err := ds.executeActiveScan(ctx, domain)
+		if err != nil {
+			return err
+		}
+		result = append(result, res...)
 	}
 
 	return ds.domainStorage.RegisterSubDomains(ctx, domain, helper.RemoveDuplicatesFromArray(result))
