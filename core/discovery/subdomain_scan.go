@@ -78,7 +78,7 @@ func (ds *DomainEnumerationService) executeActiveScan(ctx context.Context, domai
 	return ds.executeDNSBruteForce(ctx, domain)
 }
 
-func (ds *DomainEnumerationService) executeScanCmd(cmdName string, args []string, domain string) error {
+func (ds *DomainEnumerationService) executeScanCmd(cmdName string, args []string) error {
 	cmd := exec.Command(cmdName, args...)
 
 	stdout, err := cmd.StdoutPipe()
@@ -120,7 +120,7 @@ func (ds *DomainEnumerationService) executeScanCmd(cmdName string, args []string
 func (ds *DomainEnumerationService) executeAmassScan(domain string) ([]string, error) {
 	outputFile := fmt.Sprintf("/tmp/amass-passive-%s.txt", domain)
 	args := []string{"enum", "-active", "-d", domain, "-o", outputFile}
-	if err := ds.executeScanCmd("amass", args, domain); err != nil {
+	if err := ds.executeScanCmd("amass", args); err != nil {
 		return nil, err
 	}
 	return helper.ExtractSubdomains(outputFile, domain)
@@ -129,7 +129,7 @@ func (ds *DomainEnumerationService) executeAmassScan(domain string) ([]string, e
 func (ds *DomainEnumerationService) executeSubfinderScan(domain string) ([]string, error) {
 	outputFile := fmt.Sprintf("/tmp/subfinder-passive-%s.txt", domain)
 	args := []string{"-silent", "-all", "-d", domain, "-o", outputFile}
-	if err := ds.executeScanCmd("subfinder", args, domain); err != nil {
+	if err := ds.executeScanCmd("subfinder", args); err != nil {
 		return nil, err
 	}
 	return helper.ExtractSubdomains(outputFile, domain)
@@ -213,7 +213,7 @@ func (ds *DomainEnumerationService) executeDNSBruteForce(ctx context.Context, do
 	outputFile := fmt.Sprintf("/tmp/dnsbrute-%s.txt", domain)
 	wordlistPath := filepath.Join("./wordlists/dns", "subdomains-top1million-5000.txt")
 	args := []string{"-d", domain, "-w", wordlistPath, "-o", outputFile}
-	if err := ds.executeScanCmd("dnsx", args, domain); err != nil {
+	if err := ds.executeScanCmd("dnsx", args); err != nil {
 		return nil, err
 	}
 	return helper.ExtractSubdomains(outputFile, domain)
