@@ -211,7 +211,7 @@ func (ds *DomainEnumerationService) enumURLFromBevigil(domain string) ([]string,
 
 func (ds *DomainEnumerationService) executeDNSBruteForce(ctx context.Context, domain string) ([]string, error) {
 	outputFile := fmt.Sprintf("/tmp/dnsbrute-%s.txt", domain)
-	wordlistPath := filepath.Join("./wordlists/dns", "subdomains-top1million-5000.txt")
+	wordlistPath := filepath.Join("./wordlists/dns", "subdomains-top1million-20000.txt")
 	args := []string{"-d", domain, "-w", wordlistPath, "-o", outputFile}
 	if err := ds.executeScanCmd("dnsx", args); err != nil {
 		return nil, err
