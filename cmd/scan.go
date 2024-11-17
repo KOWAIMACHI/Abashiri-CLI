@@ -42,11 +42,20 @@ Example usage:
 
 	Run: func(cmd *cobra.Command, args []string) {
 		domain, _ := cmd.Flags().GetString("domain")
+		mode, _ := cmd.Flags().GetString("mode")
 		verbose, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
 			log.Fatalf("Failed to parse verbose flag: %v", err)
 		}
-		mode, _ := cmd.Flags().GetString("mode")
+		isDomainOnly, err := cmd.Flags().GetBool("subdomains")
+		if err != nil {
+			log.Fatalf("Failed to parse subdomains flag: %v", err)
+		}
+
+		isURLOnly, err := cmd.Flags().GetBool("urls")
+		if err != nil {
+			log.Fatalf("Failed to parse verbose flag: %v", err)
+		}
 
 		if domain == "" {
 			cmd.Usage()
@@ -57,7 +66,9 @@ Example usage:
 		db := cmd.Context().Value("db").(*sql.DB)
 
 		option := &discovery.Option{
-			Verbose: verbose,
+			Verbose:    verbose,
+			DomainOnly: isDomainOnly,
+			URLOnly:    isURLOnly,
 		}
 
 		es := discovery.NewEumerationService(
@@ -78,4 +89,6 @@ func init() {
 	scanCmd.PersistentFlags().StringVarP(&scanArgs.domain, "domain", "d", "", "root domain")
 	scanCmd.MarkPersistentFlagRequired("domain")
 	scanCmd.PersistentFlags().StringVarP(&scanArgs.mode, "mode", "m", "passive", "passive/active")
+	scanCmd.PersistentFlags().BoolVarP(&rootArgs.verbose, "subdomains", "s", false, "scan only domain")
+	scanCmd.PersistentFlags().BoolVarP(&rootArgs.verbose, "urls", "u", false, "scan only url")
 }

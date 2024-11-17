@@ -6,7 +6,9 @@ import (
 )
 
 type Option struct {
-	Verbose bool
+	Verbose    bool
+	DomainOnly bool
+	URLOnly    bool
 }
 
 type EnumerationService struct {
@@ -28,20 +30,35 @@ func NewEumerationService(des *DomainEnumerationService, ues *URLEnumerationServ
 }
 
 func (es *EnumerationService) StartScan(ctx context.Context, domain string, mode string) error {
-	log.Println("[+] subdomain enumeration start")
+	switch {
+	case es.option.URLOnly:
+		return es.scanURLsOnly(ctx, domain)
+	case es.option.DomainOnly:
+		return es.scanDomainsOnly(ctx, domain, mode)
+	default:
+		return es.scanBoth(ctx, domain, mode)
+	}
+}
+
+func (es *EnumerationService) scanDomainsOnly(ctx context.Context, domain string, mode string) error {
+	log.Println("[+] DomainOnly mode: Skipping URL enumeration")
+
+	log.Println("[+] Starting subdomain enumeration")
 	if err := es.domainEnumSrv.StartScan(ctx, domain, mode); err != nil {
+		log.Printf("[-] Subdomain enumeration failed: %v", err)
 		return err
 	}
-	log.Println("[+] subdomain enumeration complete")
+	log.Println("[+] Subdomain enumeration complete")
+	log.Printf("[+] Check found domains: abashiri show domain -d %v", domain)
+	return nil
+}
 
-	// iterate domains
-	// ===ここ 並列処理にしたいし、recursiveな調査したい
+func (es *EnumerationService) scanURLsOnly(ctx context.Context, domain string) error {
+	log.Println("[+] URLOnly mode: Skipping subdomain enumeration")
 	domains, err := es.domainEnumSrv.domainStorage.GetSubDomainsByDomain(ctx, domain)
 	if err != nil {
 		return err
 	}
-
-	log.Println("[+] URL enumeration start")
 
 	for _, domain := range domains {
 		err := es.urlEnumSrv.StartScan(ctx, domain)
@@ -49,10 +66,34 @@ func (es *EnumerationService) StartScan(ctx context.Context, domain string, mode
 			return err
 		}
 	}
-	// ===
 
-	log.Println("[+] URL enumeration complete")
-	log.Printf("[+] check found domains : abashiri show domain -d %v", domain)
-	log.Printf("[+] check found links : abashiri show url -d %v", domain)
+	log.Printf("[+] Check found links: abashiri show url -d %v", domain)
+	return nil
+}
+
+func (es *EnumerationService) scanBoth(ctx context.Context, domain string, mode string) error {
+	log.Println("[+] Full scan mode: Starting subdomain and URL enumeration")
+
+	log.Println("[+] Starting subdomain enumeration")
+	if err := es.domainEnumSrv.StartScan(ctx, domain, mode); err != nil {
+		log.Printf("[-] Subdomain enumeration failed: %v", err)
+		return err
+	}
+	log.Println("[+] Subdomain enumeration complete")
+
+	domains, err := es.domainEnumSrv.domainStorage.GetSubDomainsByDomain(ctx, domain)
+	if err != nil {
+		return err
+	}
+
+	for _, domain := range domains {
+		err := es.urlEnumSrv.StartScan(ctx, domain)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Printf("[+] Check found domains: abashiri show domain -d %v", domain)
+	log.Printf("[+] Check found links: abashiri show url -d %v", domain)
 	return nil
 }
