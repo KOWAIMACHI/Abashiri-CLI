@@ -55,7 +55,7 @@ func (es *EnumerationService) scanDomainsOnly(ctx context.Context, domain string
 
 func (es *EnumerationService) scanURLsOnly(ctx context.Context, domain string) error {
 	log.Println("[+] URLOnly mode: Skipping subdomain enumeration")
-	domains, err := es.domainEnumSrv.domainStorage.GetSubDomainsByDomain(ctx, domain)
+	domains, err := es.domainEnumSrv.domainStorage.GetSubDomainsByParent(ctx, domain)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func (es *EnumerationService) scanBoth(ctx context.Context, domain string, mode 
 	}
 	log.Println("[+] Subdomain enumeration complete")
 
-	domains, err := es.domainEnumSrv.domainStorage.GetSubDomainsByDomain(ctx, domain)
+	domains, err := es.domainEnumSrv.domainStorage.GetSubDomainsByParent(ctx, domain)
 	if err != nil {
 		return err
 	}

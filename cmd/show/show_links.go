@@ -28,7 +28,7 @@ Example usage:
 		// domainにchildがいれば、再起的に表示したい
 		// 今は、とりあえずrootドメインから取れる状態
 		domain, _ := cmd.Flags().GetString("domain")
-		domains, err := ds.GetSubDomainsByDomain(cmd.Context(), domain)
+		domains, err := ds.GetSubDomainsByParent(cmd.Context(), domain)
 		if err != nil {
 			log.Fatal(err)
 		}

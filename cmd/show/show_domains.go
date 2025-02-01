@@ -62,7 +62,7 @@ func showRootDomains(ctx context.Context, ds storage.DomainStorage) error {
 }
 
 func showSubDomains(ctx context.Context, ds storage.DomainStorage, domain string) error {
-	domains, err := ds.GetSubDomainsByDomain(ctx, domain)
+	domains, err := ds.GetSubDomainsByParent(ctx, domain)
 	if err != nil {
 		return err
 	}

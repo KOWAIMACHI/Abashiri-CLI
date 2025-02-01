@@ -9,7 +9,7 @@ import (
 type DomainStorage interface {
 	CreateDomainIfNotExists(context.Context, string) error
 	RegisterSubDomains(context.Context, string, []string) error
-	GetSubDomainsByDomain(context.Context, string) ([]string, error)
+	GetSubDomainsByParent(context.Context, string) ([]string, error)
 	GetRootDomains(context.Context) ([]string, error)
 	DeleteDomains(context.Context, string) error
 }
@@ -117,7 +117,7 @@ ex:
 GetSubDomainByparentDomain(ctx, "example.com")
 -> example.com, app.example.com, test.app.example.com
 */
-func (ds *domainStorage) GetSubDomainsByDomain(ctx context.Context, domain string) ([]string, error) {
+func (ds *domainStorage) GetSubDomainsByParent(ctx context.Context, domain string) ([]string, error) {
 
 	query := `
 WITH RECURSIVE domain_hierarchy(id, domain_name, parent_id) AS (
