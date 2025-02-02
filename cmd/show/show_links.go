@@ -8,9 +8,28 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/url"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
+
+var EXCLUDE_EXT = map[string]bool{
+	".mp3":  true,
+	".gif":  true,
+	".css":  true,
+	".js":   true,
+	".jpg":  true,
+	".jpeg": true,
+	".png":  true,
+	".svg":  true,
+	".bmp":  true,
+	".webp": true,
+	".ico":  true,
+	".pdf":  true,
+	".ttf":  true,
+}
 
 var ShowURLsCmd = &cobra.Command{
 	Use:   "url",
@@ -42,8 +61,24 @@ Example usage:
 			}
 
 			fmt.Printf("\nURLs of %s\n", subdomain)
-			for _, url := range urls {
-				fmt.Println(url)
+			var currentURL *url.URL
+			for i, u := range urls {
+				u, err := url.Parse(u)
+				if i == 0 {
+					currentURL = u
+				}
+				if err != nil {
+					log.Fatal(err)
+				}
+				if EXCLUDE_EXT[strings.ToLower(filepath.Ext(u.Path))] {
+					continue
+				}
+
+				if currentURL.Host == u.Host && currentURL.Path == u.Path {
+					continue
+				}
+				fmt.Println(u)
+				currentURL = u
 			}
 			fmt.Printf("\n")
 		}

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exported URLs</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h2 { color: #333; }
+        ul { list-style-type: none; padding: 0; display: none; }
+		li { margin: 5px 0; cursor: pointer; color: #00bcd4; transition: color 0.3s; }
+        li.copied { color:rgb(3, 77, 79); }
+        .domain { 
+            font-weight: bold; 
+            margin-top: 20px; 
+            cursor: pointer; 
+            color: blue; 
+        }
+        .visible { display: block !important; }
+        input {
+            margin-bottom: 20px;
+            padding: 5px;
+            font-size: 16px;
+            width: 100%;
+            max-width: 300px;
+        }
+    </style>
+    <script>
+		function copyToClipboard(url, element) {
+            navigator.clipboard.writeText(url).then(() => {
+			element.classList.add('copied');
+            }).catch(err => {
+                console.error('Error copying to clipboard: ', err);
+            });
+        }
+
+        function toggleUrls(id) {
+            var ul = document.getElementById(id);
+            ul.classList.toggle('visible');
+        }
+		function filterUrls(filterText) {
+		    const domainList = document.querySelectorAll('.domain');
+		    const filters = filterText.trim().split(/\s+/);  // スペースで区切られた条件を配列に変換
+		    const includeFilters = filters.filter(f => !f.startsWith('-') && !f.startsWith('site:'));  // 除外しないフィルタ
+		    const excludeFilters = filters.filter(f => f.startsWith('-')).map(f => f.slice(1));  // 除外するフィルタ
+		    const siteFilters = filters.filter(f => f.startsWith('site:')).map(f => f.slice(5)); // 'site:' のフィルタ
+
+		    domainList.forEach((domainElement, index) => {
+		        const ul = document.getElementById('urls' + index);
+		        const urls = ul.querySelectorAll('li');
+		        let domainVisible = false;  // ドメイン表示フラグ
+
+		        urls.forEach(urlElement => {
+		            const urlText = urlElement.textContent || urlElement.innerText;
+		            let showUrl = true;
+
+		            // 含むべきフィルタで一致するものが無ければ非表示
+		            includeFilters.forEach(filter => {
+		                if (!urlText.includes(filter)) {
+		                    showUrl = false;
+		                }
+		            });
+
+		            // 除外フィルタに一致するものがあれば非表示
+		            excludeFilters.forEach(filter => {
+		                if (urlText.includes(filter)) {
+		                    showUrl = false;
+		                }
+		            });
+
+		            // site: フィルタを処理
+		            siteFilters.forEach(siteFilter => {
+		                if (!urlText.includes(siteFilter)) {
+		                    showUrl = false;
+		                }
+		            });
+
+		            // フィルタ結果に基づいて表示・非表示
+		            if (showUrl) {
+		                urlElement.style.display = 'list-item'; // 表示
+		                domainVisible = true; // 少なくとも1つのURLが表示されたらドメインを表示
+		            } else {
+		                urlElement.style.display = 'none'; // 非表示
+		            }
+		        });
+
+		        // ドメイン全体を非表示にする
+		        if (domainVisible) {
+		            domainElement.style.display = 'block'; // ドメインは表示
+		        } else {
+		            domainElement.style.display = 'none'; // ドメインが表示するURLがなければ非表示
+		        }
+		    });
+		}
+    </script>
+</head>
+<body>
+    <h1>Exported URLs</h1>
+    <input type="text" placeholder="Filter URLs..." oninput="filterUrls(this.value)">
+    {{ range $index, $data := . }}
+        <div class="domain" onclick="toggleUrls('urls{{$index}}')">{{ $data.Domain }}</div>
+        <ul id="urls{{$index}}">
+        {{ range $data.URLs }}
+			<li onclick="copyToClipboard('{{ . }}', this)">{{ . }}</li>
+        {{ end }}
+        </ul>
+    {{ end }}
+</body>
+</html>
