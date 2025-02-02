@@ -12,12 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type RootArgs struct {
-	verbose bool
-}
-
-var rootArgs = &RootArgs{}
-
 var rootCmd = &cobra.Command{
 	Use:   "abashiri",
 	Short: "",
@@ -50,9 +44,7 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+	rootCmd.SetHelpCommand(&cobra.Command{Hidden: true})
 	rootCmd.Execute()
-}
-
-func init() {
-	rootCmd.PersistentFlags().BoolVarP(&rootArgs.verbose, "verbose", "v", false, "Enable verbose output")
 }

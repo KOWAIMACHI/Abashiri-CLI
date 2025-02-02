@@ -5,10 +5,20 @@ import (
 	"log"
 )
 
+type SubDomainOption struct {
+	Mode string
+}
+
+type URLOption struct {
+	IncudeSubDomain bool
+}
+
 type Option struct {
-	Verbose    bool
-	DomainOnly bool
-	URLOnly    bool
+	Verbose         bool
+	SubDomainScan   bool
+	URLScan         bool
+	SubDomainOption SubDomainOption
+	URLOption       URLOption
 }
 
 type EnumerationService struct {
@@ -29,22 +39,21 @@ func NewEumerationService(des *DomainEnumerationService, ues *URLEnumerationServ
 	}
 }
 
-func (es *EnumerationService) StartScan(ctx context.Context, domain string, mode string) error {
-	switch {
-	case es.option.URLOnly:
+func (es *EnumerationService) StartScan(ctx context.Context, domain string) error {
+	if es.option.URLScan && !es.option.SubDomainScan {
 		return es.scanURLsOnly(ctx, domain)
-	case es.option.DomainOnly:
-		return es.scanDomainsOnly(ctx, domain, mode)
-	default:
-		return es.scanBoth(ctx, domain, mode)
 	}
+	if !es.option.URLScan && es.option.SubDomainScan {
+		return es.scanDomainsOnly(ctx, domain)
+	}
+	return es.scanBoth(ctx, domain)
 }
 
-func (es *EnumerationService) scanDomainsOnly(ctx context.Context, domain string, mode string) error {
+func (es *EnumerationService) scanDomainsOnly(ctx context.Context, domain string) error {
 	log.Println("[+] DomainOnly mode: Skipping URL enumeration")
 
 	log.Println("[+] Starting subdomain enumeration")
-	if err := es.domainEnumSrv.StartScan(ctx, domain, mode); err != nil {
+	if err := es.domainEnumSrv.StartScan(ctx, domain, es.option.SubDomainOption.Mode); err != nil {
 		log.Printf("[-] Subdomain enumeration failed: %v", err)
 		return err
 	}
@@ -71,11 +80,11 @@ func (es *EnumerationService) scanURLsOnly(ctx context.Context, domain string) e
 	return nil
 }
 
-func (es *EnumerationService) scanBoth(ctx context.Context, domain string, mode string) error {
+func (es *EnumerationService) scanBoth(ctx context.Context, domain string) error {
 	log.Println("[+] Full scan mode: Starting subdomain and URL enumeration")
 
 	log.Println("[+] Starting subdomain enumeration")
-	if err := es.domainEnumSrv.StartScan(ctx, domain, mode); err != nil {
+	if err := es.domainEnumSrv.StartScan(ctx, domain, es.option.SubDomainOption.Mode); err != nil {
 		log.Printf("[-] Subdomain enumeration failed: %v", err)
 		return err
 	}

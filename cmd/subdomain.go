@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 */
 package cmd
 
@@ -10,34 +10,22 @@ import (
 	"log"
 	"os"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
 )
 
-type ScanArgs struct {
-	domain  string
-	mode    string
-	verbose bool
-}
-
-var scanArgs = &ScanArgs{}
-
-var scanCmd = &cobra.Command{
-	Use:   "all",
-	Short: "The \"all\" command performs comprehensive subdomain and URL discovery for a given domain",
-	Long: `The "all" command performs comprehensive subdomain and URL discovery for a given domain
+// subdomainCmd represents the subdomain command
+var subdomainCmd = &cobra.Command{
+	Use:   "subdomain",
+	Short: "The \"subdomain\" command performs comprehensive subdomain discovery for a given domain",
+	Long: `The "subdomain" command performs comprehensive subdomain discovery for a given domain
 
 [!] Subdomain enumeration
   Passive Scanning: Collects subdomains from publicly available sources without direct interaction.
   Active Scanning: Actively probes for live subdomains through direct requests.
 
-[!] URL enumeration
-  Passive Scanning: Collects urls from publicly available sources without direct interaction.
-  Active Scanning: Actively probes for live subdomains through direct requests.
-
 [!] Example usage:
-  $ abashiri all -d example.com
-  $ abashiri all -d example.com -m passive
+  $ abashiri subdomain -d example.com
+  $ abashiri subdomain -d example.com -m active -v 
 `,
 
 	Run: func(cmd *cobra.Command, args []string) {
@@ -62,11 +50,14 @@ var scanCmd = &cobra.Command{
 		db := cmd.Context().Value("db").(*sql.DB)
 
 		option := &discovery.Option{
-			Verbose:       verbose,
-			URLScan:       true,
 			SubDomainScan: true,
+			URLScan:       true,
+			Verbose:       verbose,
 			SubDomainOption: discovery.SubDomainOption{
 				Mode: mode,
+			},
+			URLOption: discovery.URLOption{
+				IncudeSubDomain: true,
 			},
 		}
 
@@ -83,10 +74,10 @@ var scanCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(scanCmd)
+	rootCmd.AddCommand(subdomainCmd)
 
-	scanCmd.PersistentFlags().BoolVarP(&scanArgs.verbose, "verbose", "v", false, "Enable verbose output")
-	scanCmd.PersistentFlags().StringVarP(&scanArgs.domain, "domain", "d", "", "root domain")
-	scanCmd.MarkPersistentFlagRequired("domain")
-	scanCmd.PersistentFlags().StringVarP(&scanArgs.mode, "mode", "m", "passive", "passive/active")
+	subdomainCmd.PersistentFlags().BoolVarP(&scanArgs.verbose, "verbose", "v", false, "Enable verbose output")
+	subdomainCmd.PersistentFlags().StringVarP(&scanArgs.domain, "domain", "d", "", "root domain")
+	subdomainCmd.MarkPersistentFlagRequired("domain")
+	subdomainCmd.PersistentFlags().StringVarP(&scanArgs.mode, "mode", "m", "passive", "passive/active")
 }
