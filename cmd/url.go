@@ -66,10 +66,7 @@ var urlCmd = &cobra.Command{
 			},
 		}
 
-		es := discovery.NewEumerationService(
-			discovery.NewDomainEnumerationService(storage.NewDomainStorage(db), option),
-			discovery.NewURLEumerationService(storage.NewURLStorage(db)),
-			option)
+		es := discovery.NewEumerationService(storage.NewStorageService(db), option)
 
 		err = es.StartScan(cmd.Context(), domain)
 		if err != nil {

@@ -15,19 +15,18 @@ import (
 )
 
 type URLEnumerationService struct {
-	urlStorage storage.URLStorage
+	storage    *storage.StorageService
 	httpClient *HTTPClient
-	option     *Option
 }
 
-func NewURLEumerationService(us storage.URLStorage) *URLEnumerationService {
+func NewURLEumerationService(ss *storage.StorageService) *URLEnumerationService {
 	return &URLEnumerationService{
 		httpClient: newHTTPClient(),
-		urlStorage: us,
+		storage:    ss,
 	}
 }
 
-func (ues *URLEnumerationService) StartScan(ctx context.Context, domain string) error {
+func (ues *URLEnumerationService) Execute(ctx context.Context, domain string) error {
 	var wg sync.WaitGroup
 	scanFunctions := map[string](func(string) ([]string, error)){
 		"waybackmachine": ues.enumURLFromWayBackMachine,
@@ -58,7 +57,7 @@ func (ues *URLEnumerationService) StartScan(ctx context.Context, domain string) 
 		results = append(results, result...)
 	}
 
-	return ues.urlStorage.RegisterURLs(ctx, domain, helper.RemoveDuplicatesFromArray(results))
+	return ues.storage.URLStorage.RegisterURLs(ctx, domain, helper.RemoveDuplicatesFromArray(results))
 }
 
 func (ues *URLEnumerationService) enumURLFromCommonCrawl(domain string) ([]string, error) {

@@ -15,22 +15,22 @@ import (
 	"github.com/buger/jsonparser"
 )
 
-type DomainEnumerationService struct {
-	domainStorage storage.DomainStorage
-	httpClient    *HTTPClient
-	option        *Option
+type subdomainScanService struct {
+	storage    *storage.StorageService
+	httpClient *HTTPClient
+	option     *Option
 }
 
-func NewDomainEnumerationService(ds storage.DomainStorage, option *Option) *DomainEnumerationService {
-	return &DomainEnumerationService{
-		domainStorage: ds,
-		httpClient:    newHTTPClient(),
-		option:        option,
+func NewSubdomainScanService(ss *storage.StorageService, option *Option) ScanService {
+	return &subdomainScanService{
+		storage:    ss,
+		httpClient: newHTTPClient(),
+		option:     option,
 	}
 }
 
-func (ds *DomainEnumerationService) StartScan(ctx context.Context, domain, mode string) error {
-	err := ds.domainStorage.CreateDomainIfNotExists(ctx, domain)
+func (ds *subdomainScanService) Execute(ctx context.Context, domain string) error {
+	err := ds.storage.DomainStorage.CreateDomainIfNotExists(ctx, domain)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (ds *DomainEnumerationService) StartScan(ctx context.Context, domain, mode 
 		return err
 	}
 
-	if mode == "active" {
+	if ds.option.SubDomainOption.Mode == "active" {
 		res, err := ds.executeActiveScan(ctx, domain)
 		if err != nil {
 			return err
@@ -49,10 +49,10 @@ func (ds *DomainEnumerationService) StartScan(ctx context.Context, domain, mode 
 		result = append(result, res...)
 	}
 
-	return ds.domainStorage.RegisterSubDomains(ctx, domain, helper.RemoveDuplicatesFromArray(result))
+	return ds.storage.DomainStorage.RegisterSubDomains(ctx, domain, helper.RemoveDuplicatesFromArray(result))
 }
 
-func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, domain string) ([]string, error) {
+func (ds *subdomainScanService) executePassiveScan(ctx context.Context, domain string) ([]string, error) {
 	scanFunctions := map[string](func(string) ([]string, error)){
 		"Subfinder": ds.executeSubfinderScan,
 		// "Amass":     ds.executeAmassScan, //クッソ遅いので保留
@@ -74,11 +74,11 @@ func (ds *DomainEnumerationService) executePassiveScan(ctx context.Context, doma
 	return results, nil
 }
 
-func (ds *DomainEnumerationService) executeActiveScan(ctx context.Context, domain string) ([]string, error) {
+func (ds *subdomainScanService) executeActiveScan(ctx context.Context, domain string) ([]string, error) {
 	return ds.executeDNSBruteForce(ctx, domain)
 }
 
-func (ds *DomainEnumerationService) executeScanCmd(cmdName string, args []string) error {
+func (ds *subdomainScanService) executeScanCmd(cmdName string, args []string) error {
 	cmd := exec.Command(cmdName, args...)
 
 	stdout, err := cmd.StdoutPipe()
@@ -117,7 +117,7 @@ func (ds *DomainEnumerationService) executeScanCmd(cmdName string, args []string
 }
 
 // Amass遅すぎ問題
-func (ds *DomainEnumerationService) executeAmassScan(domain string) ([]string, error) {
+func (ds *subdomainScanService) executeAmassScan(domain string) ([]string, error) {
 	outputFile := fmt.Sprintf("/tmp/amass-passive-%s.txt", domain)
 	args := []string{"enum", "-active", "-d", domain, "-o", outputFile}
 	if err := ds.executeScanCmd("amass", args); err != nil {
@@ -126,7 +126,7 @@ func (ds *DomainEnumerationService) executeAmassScan(domain string) ([]string, e
 	return helper.ExtractSubdomains(outputFile, domain)
 }
 
-func (ds *DomainEnumerationService) executeSubfinderScan(domain string) ([]string, error) {
+func (ds *subdomainScanService) executeSubfinderScan(domain string) ([]string, error) {
 	outputFile := fmt.Sprintf("/tmp/subfinder-passive-%s.txt", domain)
 	args := []string{"-silent", "-all", "-d", domain, "-o", outputFile}
 	if err := ds.executeScanCmd("subfinder", args); err != nil {
@@ -136,7 +136,7 @@ func (ds *DomainEnumerationService) executeSubfinderScan(domain string) ([]strin
 }
 
 // TODO: もうちょい実装DRYにしたい
-func (ds *DomainEnumerationService) enumDomainFromAlienVaultOTX(domain string) ([]string, error) {
+func (ds *subdomainScanService) enumDomainFromAlienVaultOTX(domain string) ([]string, error) {
 	apiURL := fmt.Sprintf("https://otx.alienvault.com/otxapi/indicators/domain/passive_dns/%s", domain)
 	resp, err := ds.httpClient.GET(apiURL, nil)
 	if err != nil {
@@ -173,7 +173,7 @@ func (ds *DomainEnumerationService) enumDomainFromAlienVaultOTX(domain string) (
 }
 
 // enumURLFromBevigil
-func (ds *DomainEnumerationService) enumURLFromBevigil(domain string) ([]string, error) {
+func (ds *subdomainScanService) enumURLFromBevigil(domain string) ([]string, error) {
 	apiURL := fmt.Sprintf("https://osint.bevigil.com/api/%s/subdomains/", domain)
 	header := http.Header{
 		// TODO: configから読む
@@ -209,7 +209,7 @@ func (ds *DomainEnumerationService) enumURLFromBevigil(domain string) ([]string,
 	return results, nil
 }
 
-func (ds *DomainEnumerationService) executeDNSBruteForce(ctx context.Context, domain string) ([]string, error) {
+func (ds *subdomainScanService) executeDNSBruteForce(ctx context.Context, domain string) ([]string, error) {
 	log.Printf("[+] DNS bruteforce start: %s", domain)
 	outputFile := fmt.Sprintf("/tmp/dnsbrute-%s.txt", domain)
 	dir, err := os.UserHomeDir()
