@@ -16,12 +16,12 @@ import (
 )
 
 type subdomainScanService struct {
-	storage    *storage.StorageService
+	storage    storage.DomainStorage
 	httpClient *HTTPClient
 	option     *Option
 }
 
-func NewSubdomainScanService(ss *storage.StorageService, option *Option) ScanService {
+func NewSubdomainScanService(ss storage.DomainStorage, option *Option) ScanService {
 	return &subdomainScanService{
 		storage:    ss,
 		httpClient: newHTTPClient(),
@@ -30,7 +30,7 @@ func NewSubdomainScanService(ss *storage.StorageService, option *Option) ScanSer
 }
 
 func (ds *subdomainScanService) Execute(ctx context.Context, domain string) error {
-	err := ds.storage.DomainStorage.CreateDomainIfNotExists(ctx, domain)
+	err := ds.storage.CreateDomainIfNotExists(ctx, domain)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (ds *subdomainScanService) Execute(ctx context.Context, domain string) erro
 		result = append(result, res...)
 	}
 
-	return ds.storage.DomainStorage.RegisterSubDomains(ctx, domain, helper.RemoveDuplicatesFromArray(result))
+	return ds.storage.RegisterSubDomains(ctx, domain, helper.RemoveDuplicatesFromArray(result))
 }
 
 func (ds *subdomainScanService) executePassiveScan(ctx context.Context, domain string) ([]string, error) {

@@ -36,8 +36,8 @@ type EnumerationService struct {
 func NewEumerationService(ss *storage.StorageService, option *Option) *EnumerationService {
 	return &EnumerationService{
 		storageServie:     ss,
-		subdomainmScanSrv: NewSubdomainScanService(ss, option),
-		urlEnumSrv:        NewURLEumerationService(ss),
+		subdomainmScanSrv: NewSubdomainScanService(ss.DomainStorage, option),
+		urlEnumSrv:        NewURLEumerationService(ss.URLStorage),
 		option:            option,
 	}
 }

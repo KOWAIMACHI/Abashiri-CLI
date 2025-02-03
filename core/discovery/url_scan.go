@@ -15,14 +15,14 @@ import (
 )
 
 type URLEnumerationService struct {
-	storage    *storage.StorageService
+	storage    storage.URLStorage
 	httpClient *HTTPClient
 }
 
-func NewURLEumerationService(ss *storage.StorageService) *URLEnumerationService {
+func NewURLEumerationService(storage storage.URLStorage) *URLEnumerationService {
 	return &URLEnumerationService{
 		httpClient: newHTTPClient(),
-		storage:    ss,
+		storage:    storage,
 	}
 }
 
@@ -57,7 +57,7 @@ func (ues *URLEnumerationService) Execute(ctx context.Context, domain string) er
 		results = append(results, result...)
 	}
 
-	return ues.storage.URLStorage.RegisterURLs(ctx, domain, helper.RemoveDuplicatesFromArray(results))
+	return ues.storage.RegisterURLs(ctx, domain, helper.RemoveDuplicatesFromArray(results))
 }
 
 func (ues *URLEnumerationService) enumURLFromCommonCrawl(domain string) ([]string, error) {
