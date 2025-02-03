@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -44,6 +45,21 @@ var EXCLUDE_EXT = map[string]bool{
 	".ttf":   true,
 	".woff":  true,
 	".woff2": true,
+}
+
+var invalidPercentEncoding = regexp.MustCompile(`%[^0-9A-Fa-f]{0,2}`)
+
+func sanitizeURL(rawURL string) string {
+	return invalidPercentEncoding.ReplaceAllString(rawURL, "")
+}
+
+func safeParseURL(rawURL string) (*url.URL, error) {
+	rawURL = sanitizeURL(rawURL)
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, err
+	}
+	return parsedURL, nil
 }
 
 // exportCmd represents the export command
@@ -81,7 +97,7 @@ var exportCmd = &cobra.Command{
 			var filteredURLs []string
 			var currentURL *url.URL
 			for i, u := range urls {
-				uu, err := url.Parse(u)
+				uu, err := safeParseURL(u)
 				if i == 0 {
 					currentURL = uu
 				}
